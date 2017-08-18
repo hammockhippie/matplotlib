@@ -2241,15 +2241,29 @@ class FigureCanvasBase:
 
     def get_default_filename(self):
         """
-        Return a string, which includes extension, suitable for use as
-        a default filename.
+        Return a suitable default filename, including the extension.
         """
-        basename = (self.manager.get_window_title() if self.manager is not None
-                    else '')
-        basename = (basename or 'image').replace(' ', '_')
-        filetype = self.get_default_filetype()
-        filename = basename + '.' + filetype
-        return filename
+        default_basename = (
+            self.manager.get_window_title()
+            if self.manager is not None
+            else ''
+        )
+        # Characters to be avoided in a NT path:
+        # https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx#naming_conventions
+        removed_chars = \
+            {"posix": " /\0", "nt": r'<>:"/\|?*\0'}.get(os.name, "_")
+        default_basename = default_basename.translate(
+            {ord(c): "_" for c in removed_chars})
+        default_filetype = self.get_default_filetype()
+        save_dir = os.path.expanduser(rcParams.get("savefig.directory", ""))
+        # Ensure non-existing filename in save dir.
+        default_filename = next(
+            filename for filename in itertools.chain(
+                ["{}.{}".format(default_basename, default_filetype)],
+                ("{}-{}.{}".format(default_basename, i, default_filetype)
+                 for i in itertools.count(1)))
+            if not os.path.isfile(os.path.join(save_dir, filename)))
+        return default_filename
 
     @_api.deprecated("3.8")
     def switch_backends(self, FigureCanvasClass):
