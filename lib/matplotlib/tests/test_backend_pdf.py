@@ -411,3 +411,15 @@ def test_multi_font_type42():
 
     fig = plt.figure()
     fig.text(0.15, 0.475, "There are 几个汉字 in between!")
+
+
+@image_comparison(["truetype-conversion.pdf"])
+# mpltest.ttf does not have "l"/"p" glyphs so we get a warning when trying to
+# get the font extents.
+def test_truetype_conversion(recwarn):
+    mpl.rcParams['pdf.fonttype'] = 3
+    fig, ax = plt.subplots()
+    ax.text(0, 0, "ABCDE",
+            font=Path(__file__).with_name("mpltest.ttf"), fontsize=80)
+    ax.set_xticks([])
+    ax.set_yticks([])
