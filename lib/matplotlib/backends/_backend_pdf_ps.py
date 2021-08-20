@@ -43,8 +43,10 @@ def get_glyphs_subset(fontfile, characters):
     options = subset.Options(glyph_names=True, recommended_glyphs=True)
 
     # prevent subsetting FontForge Timestamp and other tables
-    options.drop_tables += ['FFTM', 'PfEd', 'BDF']
-
+    options.drop_tables += ['FFTM', 'PfEd', 'meta', 'Zapf', 'feat', 'just',
+                            'kerx', 'xref', 'morx', 'fond', 'fdsc', 'trak',
+                            'MERG', 'cidg', 'ltag', 'bdat', 'bloc', 'fmtx',
+                            'TSIV']
     # if fontfile is a ttc, specify font number
     if fontfile.endswith(".ttc"):
         options.font_number = 0
