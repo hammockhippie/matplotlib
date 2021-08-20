@@ -51,6 +51,11 @@ def get_glyphs_subset(fontfile, characters):
     if fontfile.endswith(".ttc"):
         options.font_number = 0
 
+    if fontfile.endswith('ttc'):
+        # fix this once we support loading more fonts from a collection
+        # https://github.com/matplotlib/matplotlib/issues/3135#issuecomment-571085541
+        options.font_number = 0
+
     font = subset.load_font(fontfile, options)
     subsetter = subset.Subsetter(options=options)
     subsetter.populate(text=characters)
