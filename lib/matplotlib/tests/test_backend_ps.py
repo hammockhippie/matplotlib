@@ -244,6 +244,31 @@ def test_fonttype(fonttype):
     assert re.search(test, buf.getvalue(), re.MULTILINE)
 
 
+@image_comparison(["type42_several_fonts.eps"])
+def test_type42_several_fonts():
+    # exercise the type-42 embedding code with several fonts, but to
+    # make this feasible in CI, use only fonts in ttf-dejavu-core
+    mpl.rcParams["ps.fonttype"] = 42
+    fps = [font_manager.FontProperties(**x) for x in (
+        dict(family='DejaVu Sans', style='normal'),
+        dict(family='DejaVu Sans', style='normal', weight='bold'),
+        dict(family='DejaVu Sans Mono', style='normal'),
+        dict(family='DejaVu Sans Mono', style='normal', weight='bold'),
+        dict(family='DejaVu Serif', style='normal'),
+        dict(family='DejaVu Serif', style='normal', weight='bold'),
+    )]
+    fontfiles = (font_manager.findfont(fp) for fp in fps)
+    if len(set(fontfiles)) < 6:
+        pytest.skip("Some fonts missing from these: "
+                    "DejaVu {Sans,Sans Mono,Serif} {Regular,Bold}"
+                    f"(found {fontfiles})")
+    fig, ax = plt.subplots()
+    ax.axis((0, 10, 0, 10))
+    for i, fp in enumerate(fps):
+        ax.text(1, 9-i, f"{fp.get_family()} {fp.get_weight()}",
+                fontproperties=fp)
+
+
 def test_linedash():
     """Test that dashed lines do not break PS output"""
     fig, ax = plt.subplots()

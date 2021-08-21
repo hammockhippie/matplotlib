@@ -107,6 +107,7 @@ stages:
               texlive-latex-extra \
               texlive-latex-recommended \
               texlive-xetex texlive-luatex \
+              ttf-dejavu-core \
               ttf-wqy-zenhei
             ;;
           darwin)

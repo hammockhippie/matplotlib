@@ -109,6 +109,7 @@ jobs:
               texlive-latex-recommended \
               texlive-luatex \
               texlive-xetex \
+              ttf-dejavu-core \
               ttf-wqy-zenhei
             if [[ "${{ matrix.os }}" = ubuntu-20.04 ]]; then
               sudo apt install -yy libopengl0
