@@ -39,7 +39,9 @@ from matplotlib.path import Path
 from matplotlib.texmanager import TexManager
 from matplotlib.transforms import Affine2D
 from matplotlib.backends.backend_mixed import MixedModeRenderer
-from . import _backend_pdf_ps
+from ._backend_pdf_ps import (
+    get_glyphs_subset, font_as_file, RendererPDFPSBase, CharacterTracker
+)
 
 
 _log = logging.getLogger(__name__)
@@ -226,15 +228,19 @@ def _font_to_ps_type42(font_path, chars, fh):
     subset_str = ''.join(chr(c) for c in chars)
     _log.debug("SUBSET %s characters: %s", font_path, subset_str)
     try:
-        with _backend_pdf_ps.get_glyphs_subset(
-                font_path, subset_str
-        ) as subset:
-            fontdata = _backend_pdf_ps.font_as_file(subset).getvalue()
+        kw = {}
+        # fix this once we support loading more fonts from a collection
+        # https://github.com/matplotlib/matplotlib/issues/3135#issuecomment-571085541
+        if font_path.endswith('.ttc'):
+            kw['fontNumber'] = 0
+        with fontTools.ttLib.TTFont(font_path, **kw) as font, \
+             get_glyphs_subset(font_path, subset_str) as subset:
+            fontdata = font_as_file(subset).getvalue()
             _log.debug(
                 "SUBSET %s %d -> %d", font_path, os.stat(font_path).st_size,
                 len(fontdata)
             )
-            fh.write(_serialize_type42(subset, fontdata))
+            fh.write(_serialize_type42(font, subset, fontdata))
     except RuntimeError:
         _log.warning(
             "The PostScript backend does not currently "
@@ -242,14 +248,16 @@ def _font_to_ps_type42(font_path, chars, fh):
         raise
 
 
-def _serialize_type42(font, fontdata):
+def _serialize_type42(font, subset, fontdata):
     """
     Output a PostScript Type-42 format representation of font
 
     Parameters
     ----------
     font : fontTools.ttLib.ttFont.TTFont
-        The font object
+        The original font object
+    subset : fontTools.ttLib.ttFont.TTFont
+        The subset font object
     fontdata : bytes
         The raw font data in TTF format
 
@@ -284,7 +292,7 @@ def _serialize_type42(font, fontdata):
     FontName currentdict end definefont pop
     """)
 
-    return fmt % (_charstrings(font), _sfnts(fontdata, font, breakpoints))
+    return fmt % (_charstrings(subset), _sfnts(fontdata, subset, breakpoints))
 
 
 def _version_and_breakpoints(loca, fontdata):
@@ -439,7 +447,7 @@ def _log_if_debug_on(meth):
     return wrapper
 
 
-class RendererPS(_backend_pdf_ps.RendererPDFPSBase):
+class RendererPS(RendererPDFPSBase):
     """
     The renderer handles all the drawing primitives using a graphics
     context instance that controls the colors/styles.
@@ -472,7 +480,7 @@ class RendererPS(_backend_pdf_ps.RendererPDFPSBase):
         self._clip_paths = {}
         self._path_collection_id = 0
 
-        self._character_tracker = _backend_pdf_ps.CharacterTracker()
+        self._character_tracker = CharacterTracker()
         self._logwarn_once = functools.lru_cache(None)(_log.warning)
 
     def _is_transparent(self, rgb_or_rgba):
