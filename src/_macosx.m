@@ -934,20 +934,20 @@ NavigationToolbar2_init(NavigationToolbar2 *self, PyObject *args, PyObject *kwds
     [self->handler installCallbacks: actions forButtons: buttons];
 
     NSFont* font = [NSFont systemFontOfSize: 0.0];
-    rect.size.width = 300;
-    rect.size.height = 0;
-    rect.origin.x += height;
-    NSTextView* messagebox = [[NSTextView alloc] initWithFrame: rect];
+    // rect.origin.x is now at the far right edge of the buttons
+    // we want the messagebox to take up the rest of the toolbar area
+    // Make it a zero-width box if we don't have enough room
+    rect.size.width = fmax(bounds.size.width - rect.origin.x, 0);
+    rect.origin.x = bounds.size.width - rect.size.width;
+    NSTextView* messagebox = [[[NSTextView alloc] initWithFrame: rect] autorelease];
     messagebox.textContainer.maximumNumberOfLines = 2;
     messagebox.textContainer.lineBreakMode = NSLineBreakByTruncatingTail;
+    messagebox.alignment = NSTextAlignmentRight;
     [messagebox setFont: font];
     [messagebox setDrawsBackground: NO];
     [messagebox setSelectable: NO];
     /* if selectable, the messagebox can become first responder,
      * which is not supposed to happen */
-    rect = [messagebox frame];
-    rect.origin.y = 0.5 * (height - rect.size.height);
-    [messagebox setFrameOrigin: rect.origin];
     [[window contentView] addSubview: messagebox];
     [messagebox release];
     [[window contentView] display];
@@ -974,7 +974,7 @@ NavigationToolbar2_set_message(NavigationToolbar2 *self, PyObject* args)
 {
     const char* message;
 
-    if (!PyArg_ParseTuple(args, "y", &message)) { return NULL; }
+    if (!PyArg_ParseTuple(args, "s", &message)) { return NULL; }
 
     NSTextView* messagebox = self->messagebox;
 
@@ -982,18 +982,23 @@ NavigationToolbar2_set_message(NavigationToolbar2 *self, PyObject* args)
         NSString* text = [NSString stringWithUTF8String: message];
         [messagebox setString: text];
 
-        // Adjust width with the window size
+        // Adjust width and height with the window size and content
         NSRect rectWindow = [messagebox.superview frame];
         NSRect rect = [messagebox frame];
+        // Entire region to the right of the buttons
         rect.size.width = rectWindow.size.width - rect.origin.x;
         [messagebox setFrame: rect];
-
-        // Adjust height with the content size
+        // We want to control the vertical position of
+        // the rect by the content size to center it vertically
         [messagebox.layoutManager ensureLayoutForTextContainer: messagebox.textContainer];
-        NSRect contentSize = [messagebox.layoutManager usedRectForTextContainer: messagebox.textContainer];
-        rect = [messagebox frame];
-        rect.origin.y = 0.5 * (self->height - contentSize.size.height);
+        NSRect contentRect = [messagebox.layoutManager usedRectForTextContainer: messagebox.textContainer];
+        rect.origin.y = 0.5 * (self->height - contentRect.size.height);
+        rect.size.height = contentRect.size.height;
         [messagebox setFrame: rect];
+        // Disable cursorRects so that the cursor doesn't get updated by events
+        // in NSApp (like resizing TextViews), we want to handle the cursor
+        // changes from within MPL with set_cursor() ourselves
+        [[messagebox.superview window] disableCursorRects];
     }
 
     Py_RETURN_NONE;
@@ -1022,33 +1027,24 @@ choose_save_file(PyObject* unused, PyObject* args)
 {
     int result;
     const char* title;
+    const char* directory;
     const char* default_filename;
-    if (!PyArg_ParseTuple(args, "ss", &title, &default_filename)) {
+    if (!PyArg_ParseTuple(args, "sss", &title, &directory, &default_filename)) {
         return NULL;
     }
     NSSavePanel* panel = [NSSavePanel savePanel];
-    [panel setTitle: [NSString stringWithCString: title
-                                        encoding: NSASCIIStringEncoding]];
-    NSString* ns_default_filename =
-        [[NSString alloc]
-         initWithCString: default_filename
-         encoding: NSUTF8StringEncoding];
-    [panel setNameFieldStringValue: ns_default_filename];
+    [panel setTitle: [NSString stringWithUTF8String: title]];
+    [panel setDirectoryURL: [NSURL fileURLWithPath: [NSString stringWithUTF8String: directory]
+                                       isDirectory: YES]];
+    [panel setNameFieldStringValue: [NSString stringWithUTF8String: default_filename]];
     result = [panel runModal];
-    [ns_default_filename release];
     if (result == NSModalResponseOK) {
-        NSURL* url = [panel URL];
-        NSString* filename = [url path];
+        NSString *filename = [[panel URL] path];
         if (!filename) {
             PyErr_SetString(PyExc_RuntimeError, "Failed to obtain filename");
             return 0;
         }
-        unsigned int n = [filename length];
-        unichar* buffer = malloc(n*sizeof(unichar));
-        [filename getCharacters: buffer];
-        PyObject* string = PyUnicode_FromKindAndData(PyUnicode_2BYTE_KIND, buffer, n);
-        free(buffer);
-        return string;
+        return PyUnicode_FromString([filename UTF8String]);
     }
     Py_RETURN_NONE;
 }

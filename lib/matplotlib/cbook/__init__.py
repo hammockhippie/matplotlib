@@ -206,7 +206,6 @@ class CallbackRegistry:
             s: {proxy: cid for cid, proxy in d.items()}
             for s, d in self.callbacks.items()}
 
-    @_api.rename_parameter("3.4", "s", "signal")
     def connect(self, signal, func):
         """Register *func* to be called when signal *signal* is generated."""
         if signal == "units finalize":
@@ -1333,7 +1332,12 @@ def _check_1d(x):
     """Convert scalars to 1D arrays; pass-through arrays as is."""
     # Unpack in case of e.g. Pandas or xarray object
     x = _unpack_to_numpy(x)
-    if not hasattr(x, 'shape') or len(x.shape) < 1:
+    # plot requires `shape` and `ndim`.  If passed an
+    # object that doesn't provide them, then force to numpy array.
+    # Note this will strip unit information.
+    if (not hasattr(x, 'shape') or
+            not hasattr(x, 'ndim') or
+            len(x.shape) < 1):
         return np.atleast_1d(x)
     else:
         return x
@@ -2153,7 +2157,7 @@ def _g_sig_digits(value, delta):
     if delta == 0:
         # delta = 0 may occur when trying to format values over a tiny range;
         # in that case, replace it by the distance to the closest float.
-        delta = np.spacing(value)
+        delta = abs(np.spacing(value))
     # If e.g. value = 45.67 and delta = 0.02, then we want to round to 2 digits
     # after the decimal point (floor(log10(0.02)) = -2); 45.67 contributes 2
     # digits before the decimal point (floor(log10(45.67)) + 1 = 2): the total

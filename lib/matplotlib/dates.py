@@ -142,8 +142,8 @@ The available date tickers are:
 
 * `YearLocator`: Locate years that are multiples of base.
 
-* `RRuleLocator`: Locate using a ``matplotlib.dates.rrulewrapper``.
-  ``rrulewrapper`` is a simple wrapper around dateutil_'s `dateutil.rrule`
+* `RRuleLocator`: Locate using a `rrulewrapper`.
+  `rrulewrapper` is a simple wrapper around dateutil_'s `dateutil.rrule`
   which allow almost arbitrary date tick specifications.
   See :doc:`rrule example </gallery/ticks/date_demo_rrule>`.
 
@@ -195,7 +195,7 @@ __all__ = ('datestr2num', 'date2num', 'num2date', 'num2timedelta', 'drange',
            'rrule', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU',
            'YEARLY', 'MONTHLY', 'WEEKLY', 'DAILY',
            'HOURLY', 'MINUTELY', 'SECONDLY', 'MICROSECONDLY', 'relativedelta',
-           'DateConverter', 'ConciseDateConverter')
+           'DateConverter', 'ConciseDateConverter', 'rrulewrapper')
 
 
 _log = logging.getLogger(__name__)
@@ -981,16 +981,28 @@ class AutoDateFormatter(ticker.Formatter):
 
 class rrulewrapper:
     """
-    A simple wrapper around a ``dateutil.rrule`` allowing flexible
+    A simple wrapper around a `dateutil.rrule` allowing flexible
     date tick specifications.
     """
     def __init__(self, freq, tzinfo=None, **kwargs):
+        """
+        Parameters
+        ----------
+        freq : {YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY, SECONDLY}
+            Tick frequency. These constants are defined in `dateutil.rrule`,
+            but they are accessible from `matplotlib.dates` as well.
+        tzinfo : `datetime.tzinfo`, optional
+            Time zone information. The default is None.
+        **kwargs
+            Additional keyword arguments are passed to the `dateutil.rrule`.
+        """
         kwargs['freq'] = freq
         self._base_tzinfo = tzinfo
 
         self._update_rrule(**kwargs)
 
     def set(self, **kwargs):
+        """Set parameters for an existing wrapper."""
         self._construct.update(kwargs)
 
         self._update_rrule(**self._construct)
@@ -1770,6 +1782,8 @@ def num2epoch(d):
     return np.asarray(d) * SEC_PER_DAY - dt
 
 
+@_api.deprecated("3.6", alternative="`AutoDateLocator` and `AutoDateFormatter`"
+                 " or vendor the code")
 def date_ticker_factory(span, tz=None, numticks=5):
     """
     Create a date locator with *numticks* (approx) and a date formatter

@@ -59,7 +59,15 @@ def _get_testable_interactive_backends():
         elif env["MPLBACKEND"].startswith('wx') and sys.platform == 'darwin':
             # ignore on OSX because that's currently broken (github #16849)
             marks.append(pytest.mark.xfail(reason='github #16849'))
-        envs.append(pytest.param(env, marks=marks, id=str(env)))
+        elif env["MPLBACKEND"] == "tkagg" and sys.platform == 'darwin':
+            marks.append(  # GitHub issue #23094
+                pytest.mark.xfail(reason="Tk version mismatch on OSX CI"))
+        envs.append(
+            pytest.param(
+                {**env, 'BACKEND_DEPS': ','.join(deps)},
+                marks=marks, id=str(env)
+            )
+        )
     return envs
 
 
@@ -167,7 +175,7 @@ def test_interactive_backend(env, toolbar):
     proc = _run_helper(_test_interactive_impl,
                        json.dumps({"toolbar": toolbar}),
                        timeout=_test_timeout,
-                       **env)
+                       extra_env=env)
 
     assert proc.stdout.count("CloseEvent") == 1
 
@@ -231,13 +239,15 @@ for param in _thread_safe_backends:
                 reason='PyPy does not support Tkinter threading: '
                        'https://foss.heptapod.net/pypy/pypy/-/issues/1929',
                 strict=True))
+    elif backend == "tkagg" and sys.platform == "darwin":
+        param.marks.append(  # GitHub issue #23094
+            pytest.mark.xfail("Tk version mismatch on OSX CI"))
 
 
 @pytest.mark.parametrize("env", _thread_safe_backends)
 @pytest.mark.flaky(reruns=3)
 def test_interactive_thread_safety(env):
-    proc = _run_helper(_test_thread_impl,
-                       timeout=_test_timeout, **env)
+    proc = _run_helper(_test_thread_impl, timeout=_test_timeout, extra_env=env)
     assert proc.stdout.count("CloseEvent") == 1
 
 
@@ -357,7 +367,11 @@ def test_cross_Qt_imports():
                 except subprocess.CalledProcessError as ex:
                     # if segfault, carry on.  We do try to warn the user they
                     # are doing something that we do not expect to work
-                    if ex.returncode == -11:
+                    if ex.returncode == -signal.SIGSEGV:
+                        continue
+                    # We got the abort signal which is likely because the Qt5 /
+                    # Qt6 cross import is unhappy, carry on.
+                    elif ex.returncode == -signal.SIGABRT:
                         continue
                     raise
 
@@ -396,22 +410,29 @@ def _lazy_headless():
     import os
     import sys
 
+    backend, deps = sys.argv[1:]
+    deps = deps.split(',')
+
     # make it look headless
     os.environ.pop('DISPLAY', None)
     os.environ.pop('WAYLAND_DISPLAY', None)
+    for dep in deps:
+        assert dep not in sys.modules
 
     # we should fast-track to Agg
     import matplotlib.pyplot as plt
-    plt.get_backend() == 'agg'
-    assert 'PyQt5' not in sys.modules
+    assert plt.get_backend() == 'agg'
+    for dep in deps:
+        assert dep not in sys.modules
 
-    # make sure we really have pyqt installed
-    import PyQt5  # noqa
-    assert 'PyQt5' in sys.modules
+    # make sure we really have dependencies installed
+    for dep in deps:
+        importlib.import_module(dep)
+        assert dep in sys.modules
 
     # try to switch and make sure we fail with ImportError
     try:
-        plt.switch_backend('qt5agg')
+        plt.switch_backend(backend)
     except ImportError:
         ...
     else:
@@ -419,9 +440,14 @@ def _lazy_headless():
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="this a linux-only test")
-@pytest.mark.backend('Qt5Agg', skip_on_importerror=True)
-def test_lazy_linux_headless():
-    proc = _run_helper(_lazy_headless, timeout=_test_timeout, MPLBACKEND="")
+@pytest.mark.parametrize("env", _get_testable_interactive_backends())
+def test_lazy_linux_headless(env):
+    proc = _run_helper(
+        _lazy_headless,
+        env.pop('MPLBACKEND'), env.pop("BACKEND_DEPS"),
+        timeout=_test_timeout,
+        extra_env={**env, 'DISPLAY': '', 'WAYLAND_DISPLAY': ''}
+    )
 
 
 def _qApp_warn_impl():
@@ -489,16 +515,18 @@ for param in _blit_backends:
     elif backend == "wx":
         param.marks.append(
             pytest.mark.skip("wx does not support blitting"))
+    elif backend == "tkagg" and sys.platform == "darwin":
+        param.marks.append(  # GitHub issue #23094
+            pytest.mark.xfail("Tk version mismatch on OSX CI")
+        )
 
 
 @pytest.mark.parametrize("env", _blit_backends)
 # subprocesses can struggle to get the display, so rerun a few times
 @pytest.mark.flaky(reruns=4)
 def test_blitting_events(env):
-    proc = _run_helper(_test_number_of_draws_script,
-                       timeout=_test_timeout,
-                       **env)
-
+    proc = _run_helper(
+        _test_number_of_draws_script, timeout=_test_timeout, extra_env=env)
     # Count the number of draw_events we got. We could count some initial
     # canvas draws (which vary in number by backend), but the critical
     # check here is that it isn't 10 draws, which would be called if
@@ -554,8 +582,8 @@ def test_figure_leak_20490(env, time_mem):
         acceptable_memory_leakage += 11_000_000
 
     result = _run_helper(
-        _test_figure_leak, str(pause_time), timeout=_test_timeout, **env
-    )
+        _test_figure_leak, str(pause_time),
+        timeout=_test_timeout, extra_env=env)
 
     growth = int(result.stdout)
     assert growth <= acceptable_memory_leakage

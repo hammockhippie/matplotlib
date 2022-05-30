@@ -189,9 +189,6 @@ def test_figure_legend():
 def test_gca():
     fig = plt.figure()
 
-    with pytest.raises(TypeError):
-        assert fig.add_axes() is None
-
     ax0 = fig.add_axes([0, 0, 1, 1])
     with pytest.warns(
             MatplotlibDeprecationWarning,
@@ -476,6 +473,10 @@ def test_invalid_figure_size(width, height):
 
 def test_invalid_figure_add_axes():
     fig = plt.figure()
+    with pytest.raises(TypeError,
+                       match="missing 1 required positional argument: 'rect'"):
+        fig.add_axes()
+
     with pytest.raises(ValueError):
         fig.add_axes((.1, .1, .5, np.nan))
 
@@ -791,7 +792,7 @@ def test_figure_clear(clear_meth):
     assert fig.axes == []
 
 
-def test_clf_not_refedined():
+def test_clf_not_redefined():
     for klass in FigureBase.__subclasses__():
         # check that subclasses do not get redefined in our Figure subclasses
         assert 'clf' not in klass.__dict__
