@@ -387,7 +387,7 @@ class Axes3D(Axes):
         self._box_aspect = aspect
         self.stale = True
 
-    def apply_aspect(self, position=None):
+    def _apply_aspect(self, position=None):
         if position is None:
             position = self.get_position(original=True)
 
@@ -420,7 +420,7 @@ class Axes3D(Axes):
         # it adjusts the view limits and the size of the bounding box
         # of the Axes
         locator = self.get_axes_locator()
-        self.apply_aspect(locator(self, renderer) if locator else None)
+        self._apply_aspect(locator(self, renderer) if locator else None)
 
         # add the projection matrix to the renderer
         self.M = self.get_proj()

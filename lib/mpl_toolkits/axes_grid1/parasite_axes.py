@@ -82,9 +82,13 @@ class ParasiteAxesBase:
         else:
             _api.check_in_list([None, "equal", "transform"], mode=mode)
 
+    @_api.delete_parameter("3.6", "position")
     def apply_aspect(self, position=None):
+        self._apply_aspect(position)
+
+    def _apply_aspect(self, position=None):
         self._update_viewlim()
-        super().apply_aspect()
+        super()._apply_aspect()
 
     # end of aux_transform support
 
@@ -126,13 +130,13 @@ class HostAxesBase:
         if locator:
             pos = locator(self, renderer)
             self.set_position(pos, which="active")
-            self.apply_aspect(pos)
+            self._apply_aspect(pos)
         else:
-            self.apply_aspect()
+            self._apply_aspect()
 
         rect = self.get_position()
         for ax in self.parasites:
-            ax.apply_aspect(rect)
+            ax._apply_aspect(rect)
             self._children.extend(ax.get_children())
 
         super().draw(renderer)
