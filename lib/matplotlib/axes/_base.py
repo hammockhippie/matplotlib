@@ -1805,7 +1805,7 @@ class _AxesBase(martist.Artist):
                 and any(getattr(ax.get_data_ratio, "__func__", None)
                         != _AxesBase.get_data_ratio
                         for ax in axs)):
-            # Limits adjustment by apply_aspect assumes that the axes' aspect
+            # Limits adjustment by _apply_aspect assumes that the axes' aspect
             # ratio can be computed from the data limits and scales.
             raise ValueError("Cannot set Axes adjustable to 'datalim' for "
                              "Axes which override 'get_data_ratio'")
@@ -1941,6 +1941,7 @@ class _AxesBase(martist.Artist):
         ysize = max(abs(tymax - tymin), 1e-30)
         return ysize / xsize
 
+    @_api.delete_parameter("3.6", "position")
     def apply_aspect(self, position=None):
         """
         Adjust the Axes for a specified data aspect ratio.
@@ -1952,9 +1953,16 @@ class _AxesBase(martist.Artist):
         Parameters
         ----------
         position : None or .Bbox
+
             If not ``None``, this defines the position of the
             Axes within the figure as a Bbox. See `~.Axes.get_position`
             for further details.
+
+            .. admonition:: Deprecated
+
+                Changing the *position* through ``apply_aspect`` is
+                considered internal API. This parameter will be removed
+                in the future.
 
         Notes
         -----
@@ -1970,6 +1978,23 @@ class _AxesBase(martist.Artist):
             Set how the Axes adjusts to achieve the required aspect ratio.
         matplotlib.axes.Axes.set_anchor
             Set the position in case of extra space.
+        """
+        # Note: This method is a thin wrapper that only exists for the purpose
+        # of not exposing the position parameter as public API.
+        self._apply_aspect(position)
+
+    def _apply_aspect(self, position=None):
+        """
+        Adjust the Axes for a specified data aspect ratio.
+
+        See the docstring of the public `apply_aspect` method.
+
+        Parameters
+        ----------
+        position : None or .Bbox
+            If not ``None``, this defines the position of the
+            Axes within the figure as a Bbox. See `~.Axes.get_position`
+            for further details.
         """
         if position is None:
             position = self.get_position(original=True)
@@ -3040,7 +3065,7 @@ class _AxesBase(martist.Artist):
         axs = self._twinned_axes.get_siblings(self) + self.child_axes
         for ax in self.child_axes:  # Child positions must be updated first.
             locator = ax.get_axes_locator()
-            ax.apply_aspect(locator(self, renderer) if locator else None)
+            ax._apply_aspect(locator(self, renderer) if locator else None)
 
         for title in titles:
             x, _ = title.get_position()
@@ -3103,7 +3128,7 @@ class _AxesBase(martist.Artist):
 
         # loop over self and child Axes...
         locator = self.get_axes_locator()
-        self.apply_aspect(locator(self, renderer) if locator else None)
+        self._apply_aspect(locator(self, renderer) if locator else None)
 
         artists = self.get_children()
         artists.remove(self.patch)
@@ -4467,7 +4492,7 @@ class _AxesBase(martist.Artist):
             return None
 
         locator = self.get_axes_locator()
-        self.apply_aspect(
+        self._apply_aspect(
             locator(self, renderer) if locator and call_axes_locator else None)
 
         for axis in self._axis_map.values():
