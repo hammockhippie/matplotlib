@@ -4,6 +4,7 @@ Common functionality between the PDF and PS backends.
 
 from io import BytesIO
 import functools
+import logging
 
 from fontTools import subset
 
@@ -24,7 +25,7 @@ def get_glyphs_subset(fontfile, characters):
     Subset a TTF font
 
     Reads the named fontfile and restricts the font to the characters.
-    Returns a serialization of the subset font as file-like object.
+    Returns a TTFont object.
 
     Parameters
     ----------
@@ -32,24 +33,54 @@ def get_glyphs_subset(fontfile, characters):
         Path to the font file
     characters : str
         Continuous set of characters to include in subset
+
+    Returns
+    -------
+    fontTools.ttLib.ttFont.TTFont
+        An open font object representing the subset, which needs to
+        be closed by the caller.
     """
 
     options = subset.Options(glyph_names=True, recommended_glyphs=True)
 
     # prevent subsetting FontForge Timestamp and other tables
-    options.drop_tables += ['FFTM', 'PfEd', 'BDF']
-
+    options.drop_tables += ['FFTM', 'PfEd', 'meta', 'Zapf', 'feat', 'just',
+                            'kerx', 'xref', 'morx', 'fond', 'fdsc', 'trak',
+                            'MERG', 'cidg', 'ltag', 'bdat', 'bloc', 'fmtx',
+                            'TSIV']
     # if fontfile is a ttc, specify font number
     if fontfile.endswith(".ttc"):
         options.font_number = 0
 
-    with subset.load_font(fontfile, options) as font:
-        subsetter = subset.Subsetter(options=options)
-        subsetter.populate(text=characters)
-        subsetter.subset(font)
-        fh = BytesIO()
-        font.save(fh, reorderTables=False)
-        return fh
+    if fontfile.endswith('ttc'):
+        # fix this once we support loading more fonts from a collection
+        # https://github.com/matplotlib/matplotlib/issues/3135#issuecomment-571085541
+        options.font_number = 0
+
+    font = subset.load_font(fontfile, options)
+    subsetter = subset.Subsetter(options=options)
+    subsetter.populate(text=characters)
+    subsetter.subset(font)
+    return font
+
+
+def font_as_file(font):
+    """
+    Convert a TTFont object into a file-like object.
+
+    Parameters
+    ----------
+    font : fontTools.ttLib.ttFont.TTFont
+        A font object
+
+    Returns
+    -------
+    BytesIO
+        A file object with the font saved into it
+    """
+    fh = BytesIO()
+    font.save(fh, reorderTables=False)
+    return fh
 
 
 class CharacterTracker:
@@ -134,7 +165,13 @@ class RendererPDFPSBase(RendererBase):
 
     def _get_font_ttf(self, prop):
         fnames = font_manager.fontManager._find_fonts_by_props(prop)
-        font = font_manager.get_font(fnames)
-        font.clear()
-        font.set_size(prop.get_size_in_points(), 72)
-        return font
+        try:
+            font = font_manager.get_font(fnames)
+            font.clear()
+            font.set_size(prop.get_size_in_points(), 72)
+            return font
+        except RuntimeError:
+            logging.getLogger(__name__).warning(
+                "The PostScript/PDF backend does not currently "
+                "support the selected font (%s).", fnames)
+            raise
