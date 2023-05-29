@@ -3245,7 +3245,8 @@ class RectangleSelector(_SelectorWidget):
     See also: :doc:`/gallery/widgets/rectangle_selector`
     """
 
-    def __init__(self, ax, * , onselect=lambda *agrs:None, minspanx=0, minspany=0, useblit=False,
+    def __init__(self, ax, *, onselect=lambda *agrs: None, minspanx=0,
+                 minspany=0, useblit=False,
                  props=None, spancoords='data', button=None, grab_range=10,
                  handle_props=None, interactive=False,
                  state_modifier_keys=None, drag_from_anywhere=False,
@@ -3789,7 +3790,8 @@ class LassoSelector(_SelectorWidget):
     """
 
     @_api.make_keyword_only("3.7", name="useblit")
-    def __init__(self, ax, onselect=lambda *args: None, useblit=True, props=None, button=None):
+    def __init__(self, ax, onselect=lambda *args: None, useblit=True,
+                  props=None, button=None):
         super().__init__(ax, onselect, useblit=useblit, button=button)
         self.verts = None
         props = {
