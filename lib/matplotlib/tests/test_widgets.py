@@ -133,7 +133,7 @@ def test_rectangle_minspan(ax, spancoords, minspanx, x1, minspany, y1):
 
 
 def test_deprecation_selector_visible_attribute(ax):
-    tool = widgets.RectangleSelector(ax, lambda *args: None)
+    tool = widgets.RectangleSelector(ax, onselect=noop)
 
     assert tool.get_visible()
 
