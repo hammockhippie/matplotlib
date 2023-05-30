@@ -2172,11 +2172,15 @@ class MultiCursor(Widget):
 
 class _SelectorWidget(AxesWidget):
 
-    def __init__(self, ax, onselect, useblit=False, button=None,
+    def __init__(self, ax, onselect=None, useblit=False, button=None,
                  state_modifier_keys=None, use_data_coordinates=False):
         super().__init__(ax)
 
         self._visible = True
+        if onselect is None:
+            def noop(*args):
+                return None
+            onselect = noop
         self.onselect = onselect
         self.useblit = useblit and self.canvas.supports_blit
         self.connect_default_events()
@@ -3245,7 +3249,7 @@ class RectangleSelector(_SelectorWidget):
     See also: :doc:`/gallery/widgets/rectangle_selector`
     """
 
-    def __init__(self, ax, *, onselect=lambda *agrs: None, minspanx=0,
+    def __init__(self, ax, *, onselect=None, minspanx=0,
                  minspany=0, useblit=False,
                  props=None, spancoords='data', button=None, grab_range=10,
                  handle_props=None, interactive=False,
@@ -3790,7 +3794,7 @@ class LassoSelector(_SelectorWidget):
     """
 
     @_api.make_keyword_only("3.7", name="useblit")
-    def __init__(self, ax, onselect=lambda *args: None, useblit=True,
+    def __init__(self, ax, onselect=None, useblit=True,
                   props=None, button=None):
         super().__init__(ax, onselect, useblit=useblit, button=button)
         self.verts = None
@@ -3903,7 +3907,7 @@ class PolygonSelector(_SelectorWidget):
     """
 
     @_api.make_keyword_only("3.7", name="useblit")
-    def __init__(self, ax, onselect=lambda *agrs: None, useblit=False,
+    def __init__(self, ax, onselect=None, useblit=False,
                  props=None, handle_props=None, grab_range=10, *,
                  draw_bounding_box=False, box_handle_props=None,
                  box_props=None):
