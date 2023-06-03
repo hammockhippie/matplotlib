@@ -1808,6 +1808,220 @@ default: %(va)s
             layout = inspect.cleandoc(layout)
             return [list(ln) for ln in layout.strip('\n').split('\n')]
 
+    def _sub_prep(self, mosaic, sub_add_func, *, sharex=False, sharey=False,
+                       width_ratios=None, height_ratios=None,
+                       empty_sentinel='.',
+                       subthing_kw=None, per_subthing_kw=None, gridspec_kw=None):
+        subthing_kw = subthing_kw or {}
+        gridspec_kw = dict(gridspec_kw or {})
+        per_subthing_kw = per_subthing_kw or {}
+
+        if height_ratios is not None:
+            if 'height_ratios' in gridspec_kw:
+                raise ValueError("'height_ratios' must not be defined both as "
+                                 "parameter and as key in 'gridspec_kw'")
+            gridspec_kw['height_ratios'] = height_ratios
+        if width_ratios is not None:
+            if 'width_ratios' in gridspec_kw:
+                raise ValueError("'width_ratios' must not be defined both as "
+                                 "parameter and as key in 'gridspec_kw'")
+            gridspec_kw['width_ratios'] = width_ratios
+
+        # special-case string input
+        if isinstance(mosaic, str):
+            mosaic = self._normalize_grid_string(mosaic)
+            per_subthing_kw = {
+                tuple(k): v for k, v in per_subthing_kw.items()
+            }
+
+        per_subthing_kw = self._norm_per_subplot_kw(per_subthing_kw)
+
+        # Only accept strict bools to allow a possible future API expansion.
+        _api.check_isinstance(bool, sharex=sharex, sharey=sharey)
+
+        def _make_array(inp):
+            """
+            Convert input into 2D array
+
+            We need to have this internal function rather than
+            ``np.asarray(..., dtype=object)`` so that a list of lists
+            of lists does not get converted to an array of dimension > 2.
+
+            Returns
+            -------
+            2D object array
+            """
+            r0, *rest = inp
+            if isinstance(r0, str):
+                raise ValueError('List mosaic specification must be 2D')
+            for j, r in enumerate(rest, start=1):
+                if isinstance(r, str):
+                    raise ValueError('List mosaic specification must be 2D')
+                if len(r0) != len(r):
+                    raise ValueError(
+                        "All of the rows must be the same length, however "
+                        f"the first row ({r0!r}) has length {len(r0)} "
+                        f"and row {j} ({r!r}) has length {len(r)}."
+                    )
+            out = np.zeros((len(inp), len(r0)), dtype=object)
+            for j, r in enumerate(inp):
+                for k, v in enumerate(r):
+                    out[j, k] = v
+            return out
+
+        def _identify_keys_and_nested(mosaic):
+            """
+            Given a 2D object array, identify unique IDs and nested mosaics
+
+            Parameters
+            ----------
+            mosaic : 2D object array
+
+            Returns
+            -------
+            unique_ids : tuple
+                The unique non-sub mosaic entries in this mosaic
+            nested : dict[tuple[int, int], 2D object array]
+            """
+            # make sure we preserve the user supplied order
+            unique_ids = cbook._OrderedSet()
+            nested = {}
+            for j, row in enumerate(mosaic):
+                for k, v in enumerate(row):
+                    if v == empty_sentinel:
+                        continue
+                    elif not cbook.is_scalar_or_string(v):
+                        nested[(j, k)] = _make_array(v)
+                    else:
+                        unique_ids.add(v)
+            return tuple(unique_ids), nested
+
+        def _do_layout(gs, mosaic, unique_ids, nested, sub_add_func):
+            """
+            Recursively do the mosaic.
+
+            Parameters
+            ----------
+            gs : GridSpec
+            mosaic : 2D object array
+                The input converted to a 2D array for this level.
+            unique_ids : tuple
+                The identified scalar labels at this level of nesting.
+            nested : dict[tuple[int, int]], 2D object array
+                The identified nested mosaics, if any.
+
+            Returns
+            -------
+            dict[label, Axes]
+                A flat dict of all of the Axes created.
+            """
+            output = dict()
+
+            # we need to merge together the Axes at this level and the axes
+            # in the (recursively) nested sub-mosaics so that we can add
+            # them to the figure in the "natural" order if you were to
+            # ravel in c-order all of the Axes that will be created
+            #
+            # This will stash the upper left index of each object (axes or
+            # nested mosaic) at this level
+            this_level = dict()
+
+            # go through the unique keys,
+            for name in unique_ids:
+                # sort out where each axes starts/ends
+                indx = np.argwhere(mosaic == name)
+                start_row, start_col = np.min(indx, axis=0)
+                end_row, end_col = np.max(indx, axis=0) + 1
+                # and construct the slice object
+                slc = (slice(start_row, end_row), slice(start_col, end_col))
+                # some light error checking
+                if (mosaic[slc] != name).any():
+                    raise ValueError(
+                        f"While trying to layout\n{mosaic!r}\n"
+                        f"we found that the label {name!r} specifies a "
+                        "non-rectangular or non-contiguous area.")
+                # and stash this slice for later
+                this_level[(start_row, start_col)] = (name, slc, 'axes')
+
+            # do the same thing for the nested mosaics (simpler because these
+            # cannot be spans yet!)
+            for (j, k), nested_mosaic in nested.items():
+                this_level[(j, k)] = (None, nested_mosaic, 'nested')
+
+            # now go through the things in this level and add them
+            # in order left-to-right top-to-bottom
+            for key in sorted(this_level):
+                name, arg, method = this_level[key]
+                # we are doing some hokey function dispatch here based
+                # on the 'method' string stashed above to sort out if this
+                # element is an Axes or a nested mosaic.
+                if method == 'axes':
+                    slc = arg
+                    # add a single axes
+                    if name in output:
+                        raise ValueError(f"There are duplicate keys {name} "
+                                         f"in the layout\n{mosaic!r}")
+                    ax = sub_add_func(
+                        gs[slc], **{
+                            'label': str(name),
+                            **subthing_kw,
+                            **per_subthing_kw.get(name, {})
+                        }
+                    )
+                    output[name] = ax
+                elif method == 'nested':
+                    nested_mosaic = arg
+                    j, k = key
+                    # recursively add the nested mosaic
+                    rows, cols = nested_mosaic.shape
+                    nested_output = _do_layout(
+                        gs[j, k].subgridspec(rows, cols),
+                        nested_mosaic,
+                        *_identify_keys_and_nested(nested_mosaic),
+                        sub_add_func
+                    )
+                    overlap = set(output) & set(nested_output)
+                    if overlap:
+                        raise ValueError(
+                            f"There are duplicate keys {overlap} "
+                            f"between the outer layout\n{mosaic!r}\n"
+                            f"and the nested layout\n{nested_mosaic}"
+                        )
+                    output.update(nested_output)
+                else:
+                    raise RuntimeError("This should never happen")
+            return output
+
+        mosaic = _make_array(mosaic)
+        rows, cols = mosaic.shape
+        gs = self.add_gridspec(rows, cols, **gridspec_kw)
+        ret = _do_layout(gs, mosaic, *_identify_keys_and_nested(mosaic), sub_add_func)
+        ax0 = next(iter(ret.values()))
+        for ax in ret.values():
+            if sharex:
+                ax.sharex(ax0)
+                ax._label_outer_xaxis(check_patch=True)
+            if sharey:
+                ax.sharey(ax0)
+                ax._label_outer_yaxis(check_patch=True)
+        if extra := set(per_subthing_kw) - set(ret):
+            raise ValueError(
+                f"The keys {extra} are in *per_sub"
+                f"{'figure' if sub_add_func.__name__=='add_subfigure' else 'plot'}_kw* "
+                "but not in the mosaic."
+            )
+        return ret
+
+    def subfigure_mosaic(self, mosaic, *, width_ratios=None,
+                         height_ratios=None, empty_sentinel='.',
+                         subfigure_kw=None, per_subfigure_kw=None, gridspec_kw=None):
+
+        ret = self._sub_prep(mosaic, self.add_subfigure, width_ratios=width_ratios,
+                             height_ratios=height_ratios, empty_sentinel=empty_sentinel,
+                             subthing_kw=subfigure_kw, per_subthing_kw=per_subfigure_kw,
+                             gridspec_kw=gridspec_kw)
+        return ret
+
     def subplot_mosaic(self, mosaic, *, sharex=False, sharey=False,
                        width_ratios=None, height_ratios=None,
                        empty_sentinel='.',
@@ -1918,203 +2132,10 @@ default: %(va)s
            total layout.
 
         """
-        subplot_kw = subplot_kw or {}
-        gridspec_kw = dict(gridspec_kw or {})
-        per_subplot_kw = per_subplot_kw or {}
-
-        if height_ratios is not None:
-            if 'height_ratios' in gridspec_kw:
-                raise ValueError("'height_ratios' must not be defined both as "
-                                 "parameter and as key in 'gridspec_kw'")
-            gridspec_kw['height_ratios'] = height_ratios
-        if width_ratios is not None:
-            if 'width_ratios' in gridspec_kw:
-                raise ValueError("'width_ratios' must not be defined both as "
-                                 "parameter and as key in 'gridspec_kw'")
-            gridspec_kw['width_ratios'] = width_ratios
-
-        # special-case string input
-        if isinstance(mosaic, str):
-            mosaic = self._normalize_grid_string(mosaic)
-            per_subplot_kw = {
-                tuple(k): v for k, v in per_subplot_kw.items()
-            }
-
-        per_subplot_kw = self._norm_per_subplot_kw(per_subplot_kw)
-
-        # Only accept strict bools to allow a possible future API expansion.
-        _api.check_isinstance(bool, sharex=sharex, sharey=sharey)
-
-        def _make_array(inp):
-            """
-            Convert input into 2D array
-
-            We need to have this internal function rather than
-            ``np.asarray(..., dtype=object)`` so that a list of lists
-            of lists does not get converted to an array of dimension > 2.
-
-            Returns
-            -------
-            2D object array
-            """
-            r0, *rest = inp
-            if isinstance(r0, str):
-                raise ValueError('List mosaic specification must be 2D')
-            for j, r in enumerate(rest, start=1):
-                if isinstance(r, str):
-                    raise ValueError('List mosaic specification must be 2D')
-                if len(r0) != len(r):
-                    raise ValueError(
-                        "All of the rows must be the same length, however "
-                        f"the first row ({r0!r}) has length {len(r0)} "
-                        f"and row {j} ({r!r}) has length {len(r)}."
-                    )
-            out = np.zeros((len(inp), len(r0)), dtype=object)
-            for j, r in enumerate(inp):
-                for k, v in enumerate(r):
-                    out[j, k] = v
-            return out
-
-        def _identify_keys_and_nested(mosaic):
-            """
-            Given a 2D object array, identify unique IDs and nested mosaics
-
-            Parameters
-            ----------
-            mosaic : 2D object array
-
-            Returns
-            -------
-            unique_ids : tuple
-                The unique non-sub mosaic entries in this mosaic
-            nested : dict[tuple[int, int], 2D object array]
-            """
-            # make sure we preserve the user supplied order
-            unique_ids = cbook._OrderedSet()
-            nested = {}
-            for j, row in enumerate(mosaic):
-                for k, v in enumerate(row):
-                    if v == empty_sentinel:
-                        continue
-                    elif not cbook.is_scalar_or_string(v):
-                        nested[(j, k)] = _make_array(v)
-                    else:
-                        unique_ids.add(v)
-
-            return tuple(unique_ids), nested
-
-        def _do_layout(gs, mosaic, unique_ids, nested):
-            """
-            Recursively do the mosaic.
-
-            Parameters
-            ----------
-            gs : GridSpec
-            mosaic : 2D object array
-                The input converted to a 2D array for this level.
-            unique_ids : tuple
-                The identified scalar labels at this level of nesting.
-            nested : dict[tuple[int, int]], 2D object array
-                The identified nested mosaics, if any.
-
-            Returns
-            -------
-            dict[label, Axes]
-                A flat dict of all of the Axes created.
-            """
-            output = dict()
-
-            # we need to merge together the Axes at this level and the axes
-            # in the (recursively) nested sub-mosaics so that we can add
-            # them to the figure in the "natural" order if you were to
-            # ravel in c-order all of the Axes that will be created
-            #
-            # This will stash the upper left index of each object (axes or
-            # nested mosaic) at this level
-            this_level = dict()
-
-            # go through the unique keys,
-            for name in unique_ids:
-                # sort out where each axes starts/ends
-                indx = np.argwhere(mosaic == name)
-                start_row, start_col = np.min(indx, axis=0)
-                end_row, end_col = np.max(indx, axis=0) + 1
-                # and construct the slice object
-                slc = (slice(start_row, end_row), slice(start_col, end_col))
-                # some light error checking
-                if (mosaic[slc] != name).any():
-                    raise ValueError(
-                        f"While trying to layout\n{mosaic!r}\n"
-                        f"we found that the label {name!r} specifies a "
-                        "non-rectangular or non-contiguous area.")
-                # and stash this slice for later
-                this_level[(start_row, start_col)] = (name, slc, 'axes')
-
-            # do the same thing for the nested mosaics (simpler because these
-            # cannot be spans yet!)
-            for (j, k), nested_mosaic in nested.items():
-                this_level[(j, k)] = (None, nested_mosaic, 'nested')
-
-            # now go through the things in this level and add them
-            # in order left-to-right top-to-bottom
-            for key in sorted(this_level):
-                name, arg, method = this_level[key]
-                # we are doing some hokey function dispatch here based
-                # on the 'method' string stashed above to sort out if this
-                # element is an Axes or a nested mosaic.
-                if method == 'axes':
-                    slc = arg
-                    # add a single axes
-                    if name in output:
-                        raise ValueError(f"There are duplicate keys {name} "
-                                         f"in the layout\n{mosaic!r}")
-                    ax = self.add_subplot(
-                        gs[slc], **{
-                            'label': str(name),
-                            **subplot_kw,
-                            **per_subplot_kw.get(name, {})
-                        }
-                    )
-                    output[name] = ax
-                elif method == 'nested':
-                    nested_mosaic = arg
-                    j, k = key
-                    # recursively add the nested mosaic
-                    rows, cols = nested_mosaic.shape
-                    nested_output = _do_layout(
-                        gs[j, k].subgridspec(rows, cols),
-                        nested_mosaic,
-                        *_identify_keys_and_nested(nested_mosaic)
-                    )
-                    overlap = set(output) & set(nested_output)
-                    if overlap:
-                        raise ValueError(
-                            f"There are duplicate keys {overlap} "
-                            f"between the outer layout\n{mosaic!r}\n"
-                            f"and the nested layout\n{nested_mosaic}"
-                        )
-                    output.update(nested_output)
-                else:
-                    raise RuntimeError("This should never happen")
-            return output
-
-        mosaic = _make_array(mosaic)
-        rows, cols = mosaic.shape
-        gs = self.add_gridspec(rows, cols, **gridspec_kw)
-        ret = _do_layout(gs, mosaic, *_identify_keys_and_nested(mosaic))
-        ax0 = next(iter(ret.values()))
-        for ax in ret.values():
-            if sharex:
-                ax.sharex(ax0)
-                ax._label_outer_xaxis(check_patch=True)
-            if sharey:
-                ax.sharey(ax0)
-                ax._label_outer_yaxis(check_patch=True)
-        if extra := set(per_subplot_kw) - set(ret):
-            raise ValueError(
-                f"The keys {extra} are in *per_subplot_kw* "
-                "but not in the mosaic."
-            )
+        ret = self._sub_prep(mosaic, self.add_subplot, sharex=sharex, sharey=sharey,
+                             width_ratios=width_ratios, height_ratios=height_ratios,
+                             empty_sentinel=empty_sentinel, subthing_kw=subplot_kw,
+                             per_subthing_kw=per_subplot_kw, gridspec_kw=gridspec_kw)
         return ret
 
     def _set_artist_props(self, a):
