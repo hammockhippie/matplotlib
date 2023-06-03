@@ -246,7 +246,13 @@ class FigureBase(Artist):
     def subfigure_mosaic(
         self,
         mosaic: str | HashableList,
-        **kwargs
+        *,
+        width_ratios: ArrayLike | None = ...,
+        height_ratios: ArrayLike | None = ...,
+        empty_sentinel: Any = ...,
+        subfigure_kw: dict[str, Any] | None = ...,
+        per_subfigure_kw: dict[Any, dict[str, Any]] | None = ...,
+        gridspec_kw: dict[str, Any] | None = ...
     ) -> dict[Any, Axes]: ...
 
     def subplot_mosaic(
