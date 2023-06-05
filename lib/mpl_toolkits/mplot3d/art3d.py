@@ -18,9 +18,70 @@ from matplotlib import (
     path as mpath)
 from matplotlib.collections import (
     LineCollection, PolyCollection, PatchCollection, PathCollection)
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize, LightSource
 from matplotlib.patches import Patch
 from . import proj3d
+
+
+# shape (6, 4, 3)
+# All faces are oriented facing outwards - when viewed from the
+# outside, their vertices are in a counterclockwise ordering.
+CUBOID = np.array([
+    # -z
+    (
+        (0, 0, 0),
+        (0, 1, 0),
+        (1, 1, 0),
+        (1, 0, 0),
+    ),
+    # +z
+    (
+        (0, 0, 1),
+        (1, 0, 1),
+        (1, 1, 1),
+        (0, 1, 1),
+    ),
+    # -y
+    (
+        (0, 0, 0),
+        (1, 0, 0),
+        (1, 0, 1),
+        (0, 0, 1),
+    ),
+    # +y
+    (
+        (0, 1, 0),
+        (0, 1, 1),
+        (1, 1, 1),
+        (1, 1, 0),
+    ),
+    # -x
+    (
+        (0, 0, 0),
+        (0, 0, 1),
+        (0, 1, 1),
+        (0, 1, 0),
+    ),
+    # +x
+    (
+        (1, 0, 0),
+        (1, 1, 0),
+        (1, 1, 1),
+        (1, 0, 1),
+    ),
+])
+
+CAMERA_VIEW_QUADRANT_TO_CUBE_FACE_ZORDER = {
+    #          -z, +z, -y, +y, -x, +x
+    #           0,  1,  2,  3,  4,  5
+
+    # viewing | cube face               | cube face
+    # quadrant| indices                 | names order
+    0: (5, 0, 4, 1, 3, 2),      # ('+z', '+y', '+x', '-x', '-y', '-z')
+    1: (5, 0, 4, 1, 2, 3),      # ('+z', '+y', '-x', '+x', '-y', '-z')
+    2: (5, 0, 1, 4, 2, 3),      # ('+z', '-y', '-x', '+x', '+y', '-z')
+    3: (5, 0, 1, 4, 3, 2)       # ('+z', '-y', '+x', '-x', '+y', '-z')
+}
 
 
 def _norm_angle(a):
@@ -1052,7 +1113,7 @@ class Poly3DCollection(PolyCollection):
             pass
         try:
             self._edgecolors = mcolors.to_rgba_array(
-                    self._edgecolor3d, self._alpha)
+                self._edgecolor3d, self._alpha)
         except (AttributeError, TypeError, IndexError):
             pass
         self.stale = True
@@ -1072,6 +1133,195 @@ class Poly3DCollection(PolyCollection):
             self.axes.M = self.axes.get_proj()
             self.do_3d_projection()
         return np.asarray(self._edgecolors2d)
+
+
+class Bar3DCollection(Poly3DCollection):
+    """
+    Bars with constant square cross section, bases located on z-plane at *z0*,
+    aranged in a regular grid at *x*, *y* locations and height *z - z0*.
+    """
+
+    # TODO: don't need to plot occluded faces
+    #           ie. back panels don't need to be drawn if alpha == 1
+
+    def __init__(self, x, y, z, dxy=0.8, z0=0, shade=True, lightsource=None, **kws):
+        #
+        assert 0 < dxy <= 1
+
+        self.xyz = np.atleast_3d([x, y, z])
+        self.z0 = float(z0)
+        # self.dxy = dxy = float(dxy)
+
+        # bar width and breadth
+        self.dx, self.dy = self._resolve_dx_dy(dxy)
+
+        # Shade faces by angle to light source
+        self._original_alpha = kws.pop('alpha', None)
+        self._shade = bool(shade)
+        if lightsource is None:
+            # chosen for backwards-compatibility
+            lightsource = LightSource(azdeg=225, altdeg=19.4712)
+        else:
+            assert isinstance(lightsource, LightSource)
+        self._lightsource = lightsource
+
+        # rectangle polygon vertices
+        verts = self._compute_bar3d_verts()
+
+        # init Poly3DCollection
+        if (no_cmap := {'color', 'facecolor', 'facecolors'}.intersection(kws)):
+            kws.pop('cmap', None)
+
+        # print(kws)
+        Poly3DCollection.__init__(self, verts, **kws)
+
+        if not no_cmap:
+            self.set_array(z.ravel())
+
+    def _resolve_dx_dy(self, dxy):
+        d = [dxy, dxy]
+        for i, s in enumerate(self.xyz.shape[1:]):
+            # dxy * (#np.array([1]) if s == 1 else
+            d[i], = dxy * np.diff(self.xyz[(i, *(0, np.s_[:2])[::(1, -1)[i]])])
+        dx, dy = d
+        assert (dx != 0) & (dy != 0)
+        return dx, dy
+
+    @property
+    def xy(self):
+        return self.xyz[:2]
+
+    @property
+    def z(self):
+        return self.xyz[2]
+
+    def set_z0(self, z0):
+        self.z0 = float(z0)
+        super().set_verts(self._compute_verts())
+
+    def set_z(self, z, clim=None):
+        self.xyz[2] = z
+        self.set_data(self.xyz, clim)
+
+    def set_data(self, xyz, clim=None):
+        self.xyz = np.atleast_3d(xyz)
+        super().set_verts(self._compute_verts())
+        self.set_array(z := self.z.ravel())
+
+        if clim is None or clim is True:
+            clim = (z.min(), z.max())
+        if clim is not False:
+            self.set_clim(*clim)
+
+        if not self.axes:
+            return
+
+        if self.axes.M is not None:
+            self.do_3d_projection()
+
+    def _compute_verts(self):
+        x, y, dz = self.xyz
+        dx = np.full(x.shape, self.dx)
+        dy = np.full(x.shape, self.dy)
+        z = np.full(x.shape, self.z0)
+        return _compute_bar3d_verts(x, y, z, dx, dy, dz)
+
+    def do_3d_projection(self):
+        """
+        Perform the 3D projection for this object.
+        """
+        if self._A is not None:
+            # force update of color mapping because we re-order them
+            # below.  If we do not do this here, the 2D draw will call
+            # this, but we will never port the color mapped values back
+            # to the 3D versions.
+            #
+            # We hold the 3D versions in a fixed order (the order the user
+            # passed in) and sort the 2D version by view depth.
+            self.update_scalarmappable()
+            if self._face_is_mapped:
+                self._facecolor3d = self._facecolors
+            if self._edge_is_mapped:
+                self._edgecolor3d = self._edgecolors
+
+        txs, tys, tzs = proj3d._proj_transform_vec(self._vec, self.axes.M)
+        xyzlist = [(txs[sl], tys[sl], tzs[sl]) for sl in self._segslices]
+
+        # get panel facecolors
+        cface, cedge = self._resolve_colors(xyzlist, self._lightsource)
+
+        if xyzlist:
+            zorder = self._compute_zorder()
+
+            z_segments_2d = sorted(
+                ((zo, np.column_stack([xs, ys]), fc, ec, idx)
+                 for idx, (zo, (xs, ys, _), fc, ec)
+                 in enumerate(zip(zorder, xyzlist, cface, cedge))),
+                key=lambda x: x[0], reverse=True)
+
+            _, segments_2d, self._facecolors2d, self._edgecolors2d, idxs = \
+                zip(*z_segments_2d)
+        else:
+            segments_2d = []
+            self._facecolors2d = np.empty((0, 4))
+            self._edgecolors2d = np.empty((0, 4))
+            idxs = []
+
+        if self._codes3d is None:
+            PolyCollection.set_verts(self, segments_2d, self._closed)
+        else:
+            codes = [self._codes3d[idx] for idx in idxs]
+            PolyCollection.set_verts_and_codes(self, segments_2d, codes)
+
+        if len(self._edgecolor3d) != len(cface):
+            self._edgecolors2d = self._edgecolor3d
+
+        # Return zorder value
+        if self._sort_zpos is not None:
+            zvec = np.array([[0], [0], [self._sort_zpos], [1]])
+            ztrans = proj3d._proj_transform_vec(zvec, self.axes.M)
+            return ztrans[2][0]
+
+        if tzs.size > 0:
+            # FIXME: Some results still don't look quite right.
+            #        In particular, examine contourf3d_demo2.py
+            #        with az = -54 and elev = -45.
+            return np.min(tzs)
+
+        return np.nan
+
+    def _resolve_colors(self, xyzlist, lightsource):
+        # This extra fuss is to re-order face / edge colors
+        cface = self._facecolor3d
+        cedge = self._edgecolor3d
+        n, nc = len(xyzlist), len(cface)
+        if (nc == 1) or (nc * 6 == n):
+            cface = cface.repeat(n // nc, axis=0)
+            if self._shade:
+                verts = self._compute_verts()
+                ax = self.axes
+                normals = _generate_normals(verts)
+                cface = _shade_colors(cface, normals, lightsource)
+
+            if self._original_alpha is not None:
+                cface[:, -1] = self._original_alpha
+
+        if len(cface) != n:
+            cface = cface.repeat(n, axis=0)
+
+        if len(cedge) != n:
+            cedge = cface if len(cedge) == 0 else cedge.repeat(n, axis=0)
+
+        return cface, cedge
+
+    def _compute_zorder(self):
+        # sort by depth (furthest drawn first)
+        zorder = camera.distance(self.axes, *self.xy)
+        zorder = (zorder - zorder.min()) / zorder.ptp()
+        zorder = zorder.ravel() * len(zorder)
+        panel_order = get_cube_face_zorder(self.axes)
+        zorder = (zorder[..., None] + panel_order / 6).ravel()
+        return zorder
 
 
 def poly_collection_2d_to_3d(col, zs=0, zdir='z'):
@@ -1218,3 +1468,35 @@ def _shade_colors(color, normals, lightsource=None):
         colors = np.asanyarray(color).copy()
 
     return colors
+
+
+def _compute__bar3d_verts(x, y, z, dx, dy, dz):
+    # indexed by [bar, face, vertex, coord]
+
+    # handle each coordinate separately
+    polys = np.empty(x.shape + CUBOID.shape)
+    for i, (p, dp) in enumerate(((x, dx), (y, dy), (z, dz))):
+        p = p[..., np.newaxis, np.newaxis]
+        dp = dp[..., np.newaxis, np.newaxis]
+        polys[..., i] = p + dp * CUBOID[..., i]
+
+    # collapse the first two axes
+    return polys.reshape((-1,) + polys.shape[-2:])
+
+
+def get_cube_face_zorder(ax):
+    # -z, +z, -y, +y, -x, +x
+    # 0,  1,   2,  3,  4,  5
+
+    view_quadrant = int((ax.azim % 360) // 90)
+    idx = CAMERA_VIEW_QUADRANT_TO_CUBE_FACE_ZORDER[view_quadrant]
+    order = np.array(idx)
+
+    if (ax.elev % 180) > 90:
+        order[:2] = order[1::-1]
+
+    # logger.trace('Panel draw order quadrant {}:\n{}\n{}', view_quadrant, order,
+    #              list(np.take(['-z', '+z', '-y', '+y', '-x', '+x'],
+    #                           order)))
+
+    return order
