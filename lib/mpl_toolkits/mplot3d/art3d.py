@@ -1166,7 +1166,7 @@ class Bar3DCollection(Poly3DCollection):
         self._lightsource = lightsource
 
         # rectangle polygon vertices
-        verts = self._compute_bar3d_verts()
+        verts = self._compute_verts()
 
         # init Poly3DCollection
         if (no_cmap := {'color', 'facecolor', 'facecolors'}.intersection(kws)):
@@ -1316,7 +1316,7 @@ class Bar3DCollection(Poly3DCollection):
 
     def _compute_zorder(self):
         # sort by depth (furthest drawn first)
-        zorder = camera.distance(self.axes, *self.xy)
+        zorder = camera_distance(self.axes, *self.xy)
         zorder = (zorder - zorder.min()) / zorder.ptp()
         zorder = zorder.ravel() * len(zorder)
         panel_order = get_cube_face_zorder(self.axes)
@@ -1470,7 +1470,36 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def _compute__bar3d_verts(x, y, z, dx, dy, dz):
+def camera_distance(ax, x, y, z=None):
+    z = np.zeros_like(x) if z is None else z
+    # camera = xyz(ax)
+    # print(camera)
+    return np.sqrt(np.square(
+        # location of points
+        [x, y, z] -
+        # camera position in xyz
+        np.array(sph2cart(*_camera_position(ax)), ndmin=3).T
+    ).sum(0))
+
+
+def sph2cart(r, theta, phi):
+    r_sinθ = r * np.sin(theta)
+    return (r_sinθ * np.cos(phi),
+            r_sinθ * np.sin(phi),
+            r * np.cos(theta))
+
+
+def _camera_position(ax):
+    """
+    Returns the camera position for 3D axes in spherical coordinates.
+    """
+    r = np.square(np.max([ax.get_xlim(),
+                          ax.get_ylim()], 1)).sum()
+    theta, phi = np.radians((90 - ax.elev, ax.azim))
+    return r, theta, phi
+
+
+def _compute_bar3d_verts(x, y, z, dx, dy, dz):
     # indexed by [bar, face, vertex, coord]
 
     # handle each coordinate separately
