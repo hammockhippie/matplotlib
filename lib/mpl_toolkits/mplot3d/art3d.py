@@ -1138,7 +1138,7 @@ class Poly3DCollection(PolyCollection):
 class Bar3DCollection(Poly3DCollection):
     """
     Bars with constant square cross section, bases located on z-plane at *z0*,
-    aranged in a regular grid at *x*, *y* locations and height *z - z0*.
+    arranged in a regular grid at *x*, *y* locations and height *z - z0*.
     """
 
     # TODO: don't need to plot occluded faces
