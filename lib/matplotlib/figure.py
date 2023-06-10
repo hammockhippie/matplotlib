@@ -1780,9 +1780,9 @@ default: %(va)s
         return _bbox
 
     @staticmethod
-    def _norm_per_subplot_kw(per_subplot_kw):
+    def _check_duplication_and_flatten_kwargs(per_subthing_kw):
         expanded = {}
-        for k, v in per_subplot_kw.items():
+        for k, v in per_subthing_kw.items():
             if isinstance(k, tuple):
                 for sub_key in k:
                     if sub_key in expanded:
@@ -1834,7 +1834,7 @@ default: %(va)s
                 tuple(k): v for k, v in per_subthing_kw.items()
             }
 
-        per_subthing_kw = self._norm_per_subplot_kw(per_subthing_kw)
+        per_subthing_kw = self._check_duplication_and_flatten_kwargs(per_subthing_kw)
 
         # Only accept strict bools to allow a possible future API expansion.
         _api.check_isinstance(bool, sharex=sharex, sharey=sharey)
