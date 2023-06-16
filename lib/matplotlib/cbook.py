@@ -495,6 +495,41 @@ def is_scalar_or_string(val):
     return isinstance(val, str) or not np.iterable(val)
 
 
+def duplicate_if_scalar(obj, n=2, raises=True):
+    """
+    Ensure object size or duplicate if necessary.
+
+    Parameters
+    ----------
+    obj : scalar, str or Sized
+
+    Returns
+    -------
+
+    """
+
+    if is_scalar_or_string(obj):
+        return [obj] * n
+
+    size = len(obj)
+    if size == 0:
+        if raises:
+            raise ValueError(f'Cannot duplicate empty {type(obj)}.')
+        return [obj] * n
+
+    if size == 1:
+        return list(obj) * n
+
+    if (size != n) and raises:
+        raise ValueError(
+            f'Input object of type {type(obj)} has incorrect size. Expected '
+            f'either a scalar type object, or a Container with length in {{1, '
+            f'{n}}}.'
+        )
+
+    return obj
+
+
 @_api.delete_parameter(
     "3.8", "np_load", alternative="open(get_sample_data(..., asfileobj=False))")
 def get_sample_data(fname, asfileobj=True, *, np_load=True):
@@ -557,6 +592,23 @@ def flatten(seq, scalarp=is_scalar_or_string):
             yield item
         else:
             yield from flatten(item, scalarp)
+
+
+def pairwise(iterable):
+    """
+    Returns an iterator of paired items, overlapping, from the original
+
+    take(4, pairwise(count()))
+            [(0, 1), (1, 2), (2, 3), (3, 4)]
+
+    From more_itertools: 
+    https://more-itertools.readthedocs.io/en/stable/_modules/more_itertools/recipes.html#pairwise
+
+    Can be removed on python >3.10 in favour of itertools.pairwise
+    """
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 class Stack:
