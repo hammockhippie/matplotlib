@@ -1187,15 +1187,17 @@ class Bar3DCollection(Poly3DCollection):
         self._lightsource = lightsource
 
         COLOR_KWS = {'color', 'facecolor', 'facecolors'}
-        if not (no_cmap := (cmap is None)) and (ckw := COLOR_KWS.intersection(kws)):
-            warnings.warn(f'Ignoring cmap since {ckw!r} provided.')
-            kws.pop('cmap', None)
+        if cmap is not None:
+            if (ckw := COLOR_KWS.intersection(kws)):
+                warnings.warn(f'Ignoring cmap since {ckw!r} provided.')
+            else:
+                kws.update(cmap=cmap)
 
         # init Poly3DCollection
         #                               rectangle side panel vertices
         Poly3DCollection.__init__(self, self._compute_verts(), **kws)
 
-        if not no_cmap:
+        if cmap:
             self.set_array(self.z.ravel())
 
     def _resolve_dx_dy(self, dxy):
@@ -1398,7 +1400,7 @@ class HexBar3DCollection(Bar3DCollection):
     def _compute_verts(self):
 
         # scale the base hexagon
-        hexagon = np.array([self.dx, self.dy * np.sqrt(3)]).T * HEXAGON
+        hexagon = np.array([self.dx, self.dy / np.sqrt(3)]).T * HEXAGON
         xy_pairs = np.moveaxis([hexagon, np.roll(hexagon, -1, 0)], 0, 1)
         xy_sides = xy_pairs[np.newaxis] + self.xy[:, None, None].T  # (n,6,2,2)
 
