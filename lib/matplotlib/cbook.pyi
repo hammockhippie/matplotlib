@@ -152,13 +152,13 @@ def is_math_text(s: str) -> bool: ...
 def hexbin(
     x: ArrayLike,
     y: ArrayLike, 
-    C: ArrayLike = None,
+    C: ArrayLike | None = None,
     gridsize: int | tuple[int, int] = 100,
-    xscale:str='linear', 
-    yscale:str='linear',
-    extent:ArrayLike=None,
+    xscale: str = 'linear', 
+    yscale: str = 'linear',
+    extent: ArrayLike | None = None,
     reduce_C_function: Callable = np.mean,
-    mincnt: int = None
+    mincnt: int | None = None
 ) -> tuple[tuple]: ...
 def violin_stats(
     X: ArrayLike, method: Callable, points: int = ..., quantiles: ArrayLike | None = ...
