@@ -8,6 +8,7 @@ artists into 3D versions which can be added to an Axes3D.
 """
 
 import math
+import warnings
 from contextlib import contextmanager
 
 import numpy as np
@@ -79,18 +80,21 @@ CUBOID = np.array([
 
 # Base hexagon for creating prisms (HexBar3DCollection).
 # sides are ordered anti-clockwise from left: ['W', 'SW', 'SE', 'E', 'NE', 'NW']
-# autopep8: off
 HEXAGON = np.array([
-    [-2,  1 ],
-    [-2, -1 ],
-    [ 0, -2 ],
-    [ 2, -1 ],
-    [ 2,  1 ],
-    [ 0,  2 ]
+    [-2, 1],
+    [-2, -1],
+    [0, -2],
+    [2, -1],
+    [2, 1],
+    [0, 2]
 ]) / 4
-# autopep8: on
 
 # ---------------------------------------------------------------------------- #
+
+
+def is_none(*args):
+    for a in args:
+        yield a is None
 
 
 def _norm_angle(a):
@@ -1147,8 +1151,8 @@ class Poly3DCollection(PolyCollection):
 class Bar3DCollection(Poly3DCollection):
     """
     Bars (rectangular prisms) with constant square cross section, bases located
-    on z-plane at *z0*, aranged in a regular grid at *x*, *y* locations and with
-    height *z - z0*.
+    on z-plane at *z0*, arranged in a regular grid at *x*, *y* locations and
+    with height *z - z0*.
     """
 
     _n_faces = 6
