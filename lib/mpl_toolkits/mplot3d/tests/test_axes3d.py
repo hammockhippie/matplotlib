@@ -14,7 +14,7 @@ from matplotlib import colors as mcolors, patches as mpatch
 from matplotlib.testing.decorators import image_comparison, check_figures_equal
 from matplotlib.testing.widgets import mock_event
 from matplotlib.collections import LineCollection, PolyCollection
-from matplotlib.hexbin import hexbin
+from matplotlib.cbook import hexbin
 from matplotlib.patches import Circle, PathPatch
 from matplotlib.path import Path
 from matplotlib.text import Text

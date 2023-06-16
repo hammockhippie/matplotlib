@@ -35,7 +35,7 @@ from matplotlib.axes._base import (
     _AxesBase, _TransformedBoundsLocator, _process_plot_format)
 from matplotlib.axes._secondary_axes import SecondaryAxis
 from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
-from matplotlib.hexbin import hexbin
+
 _log = logging.getLogger(__name__)
 
 
@@ -4935,7 +4935,7 @@ default: :rc:`scatter.edgecolors`
         x = np.asarray(x, float)
         y = np.asarray(y, float)
         
-        (*offsets, accum), (xmin, xmax), (ymin, ymax), (nx, ny) = hexbin(
+        (*offsets, accum), (xmin, xmax), (ymin, ymax), (nx, ny) = cbook.hexbin(
             x, y, C, gridsize, xscale, yscale, extent, reduce_C_function, mincnt
         )
         offsets = np.transpose(offsets)
