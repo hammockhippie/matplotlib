@@ -4930,21 +4930,21 @@ default: :rc:`scatter.edgecolors`
         self._process_unit_info([("x", x), ("y", y)], kwargs, convert=False)
 
         x, y, C = cbook.delete_masked_points(x, y, C)
-        
+
         # Count the number of data in each hexagon
         x = np.asarray(x, float)
         y = np.asarray(y, float)
-        
+
         (*offsets, accum), (xmin, xmax), (ymin, ymax), (nx, ny) = cbook.hexbin(
             x, y, C, gridsize, xscale, yscale, extent, reduce_C_function, mincnt
         )
         offsets = np.transpose(offsets)
         sx = (xmax - xmin) / nx
         sy = (ymax - ymin) / ny
-        
+
         if C is None:
             C = np.ones(len(x))
-    
+
         polygon = [sx, sy / 3] * np.array(
             [[.5, -.5], [.5, .5], [0., 1.], [-.5, .5], [-.5, -.5], [0., -1.]])
 
