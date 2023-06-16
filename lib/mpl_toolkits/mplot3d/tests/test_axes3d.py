@@ -3,7 +3,6 @@ import itertools
 
 import numpy as np
 import pytest
-from scipy.stats import multivariate_normal
 
 from mpl_toolkits.mplot3d import Axes3D, axes3d, proj3d, art3d
 import matplotlib as mpl
@@ -38,15 +37,15 @@ def get_gaussian_bars(mu=(0, 0),
                       sigma=([0.8, 0.3],
                              [0.3, 0.5]),
                       range=(-3, 3),
-                      res=2 ** 3,
+                      res=8,
                       seed=123):
     np.random.seed(seed)
-    rv = multivariate_normal(mu, np.array(sigma))
     sl = slice(*range, complex(res))
-    xy = np.array(np.mgrid[sl, sl][::-1])
-    z = rv.pdf(xy.transpose(1, 2, 0)).T
-
-    return *xy, z
+    xy = np.array(np.mgrid[sl, sl][::-1]).T - mu
+    p = np.linalg.inv(sigma)
+    exp = np.sum(np.moveaxis(xy.T, 0, 1) * (p @ np.moveaxis(xy, 0, -1)), 1)
+    z = np.exp(-exp / 2) / np.sqrt(np.linalg.det(sigma)) / np.pi / 2
+    return *xy.T, z
 
 
 def get_gaussian_hexs(mu=(0, 0),
@@ -56,8 +55,8 @@ def get_gaussian_hexs(mu=(0, 0),
                       res=8,
                       seed=123):
     np.random.seed(seed)
-    rv = multivariate_normal(mu, np.array(sigma))
-    xyz, (xmin, xmax), (ymin, ymax), (nx, ny) = hexbin(*rv.rvs(n).T, gridsize=res)
+    xy = np.random.multivariate_normal(mu, sigma, n)
+    xyz, (xmin, xmax), (ymin, ymax), (nx, ny) = hexbin(*xy.T, gridsize=res)
     dxy = np.array([(xmax - xmin) / nx, (ymax - ymin) / ny]) * 0.9
     return *xyz, dxy
 
@@ -284,8 +283,6 @@ def test_bar3d_with_2d_data(bar3d_class):
 #                                          'bar3d_facecolors_Bar3DCollection-1.png',
 #                                          'bar3d_facecolors_HexBar3DCollection-0.png'
 #                                          'bar3d_facecolors_HexBar3DCollection-1.png'])
-
-
 @pytest.mark.parametrize('shade', (0, 1))
 @pytest.mark.mpl_image_compare(style='default', remove_text=True)
 def test_bar3d_facecolors(bar3d_class, shade):
@@ -302,8 +299,6 @@ def test_bar3d_facecolors(bar3d_class, shade):
 #                                          'bar3d_cmap_Bar3DCollection-1.png',
 #                                          'bar3d_cmap_HexBar3DCollection-0.png'
 #                                          'bar3d_cmap_HexBar3DCollection-1.png'])
-
-
 @pytest.mark.parametrize('shade', (0, 1))
 @pytest.mark.mpl_image_compare(style='default', remove_text=True)
 def test_bar3d_cmap(bar3d_class, shade):
