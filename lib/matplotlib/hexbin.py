@@ -19,10 +19,6 @@ def hexbin(x, y, C=None, gridsize=100,
         nx = gridsize
         ny = int(nx / math.sqrt(3))
 
-    # Count the number of data in each hexagon
-    x = np.asarray(x, float)
-    y = np.asarray(y, float)
-
     # Will be log()'d if necessary, and then rescaled.
     tx = x
     ty = y
@@ -83,7 +79,7 @@ def hexbin(x, y, C=None, gridsize=100,
         accum = np.concatenate([counts1, counts2]).astype(float)
         if mincnt is not None:
             accum[accum < mincnt] = np.nan
-        C = np.ones(len(x))
+
     else:
         # store the C values in a list per hexagon index
         Cs_at_i1 = [[] for _ in range(1 + nx1 * ny1)]
@@ -96,9 +92,9 @@ def hexbin(x, y, C=None, gridsize=100,
         if mincnt is None:
             mincnt = 0
         accum = np.array(
-            [reduce_C_function(acc) if len(acc) > mincnt else np.nan
-             for Cs_at_i in [Cs_at_i1, Cs_at_i2]
-             for acc in Cs_at_i[1:]],  # [1:] drops out-of-range points.
+            [reduce_C_function(acc) if len(acc) >= mincnt else np.nan
+                for Cs_at_i in [Cs_at_i1, Cs_at_i2]
+                for acc in Cs_at_i[1:]],  # [1:] drops out-of-range points.
             float)
 
     good_idxs = ~np.isnan(accum)
@@ -116,4 +112,4 @@ def hexbin(x, y, C=None, gridsize=100,
     offsets = offsets[good_idxs, :]
     accum = accum[good_idxs]
 
-    return (*offsets.T, accum), (sx, sy / 3)
+    return (*offsets.T, accum), (xmin, xmax), (ymin, ymax), (nx, ny)

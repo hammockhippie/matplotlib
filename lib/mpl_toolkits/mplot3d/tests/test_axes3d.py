@@ -57,8 +57,9 @@ def get_gaussian_hexs(mu=(0, 0),
                       seed=123):
     np.random.seed(seed)
     rv = multivariate_normal(mu, np.array(sigma))
-    xyz, dxy = hexbin(*rv.rvs(n).T, gridsize=res)
-    return *xyz, np.array(dxy) * 0.9
+    xyz, (xmin, xmax), (ymin, ymax), (nx, ny) = hexbin(*rv.rvs(n).T, gridsize=res)
+    dxy = np.array([(xmax - xmin) / nx, (ymax - ymin) / ny]) * 0.9
+    return *xyz, dxy
 
 
 bar3d_data_generators = {

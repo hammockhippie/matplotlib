@@ -36,7 +36,6 @@ from matplotlib.axes._base import (
 from matplotlib.axes._secondary_axes import SecondaryAxis
 from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
 from matplotlib.hexbin import hexbin
-
 _log = logging.getLogger(__name__)
 
 
@@ -4931,12 +4930,22 @@ default: :rc:`scatter.edgecolors`
         self._process_unit_info([("x", x), ("y", y)], kwargs, convert=False)
 
         x, y, C = cbook.delete_masked_points(x, y, C)
-
-        offsets, accum, (sx, sy) = hexbin(x, y, C, gridsize,
-                                          xscale, yscale,  extent,
-                                          reduce_C_function, mincnt)
-
-        polygon = [sx, sy] * np.array(
+        
+        # Count the number of data in each hexagon
+        x = np.asarray(x, float)
+        y = np.asarray(y, float)
+        
+        (*offsets, accum), (xmin, xmax), (ymin, ymax), (nx, ny) = hexbin(
+            x, y, C, gridsize, xscale, yscale, extent, reduce_C_function, mincnt
+        )
+        offsets = np.transpose(offsets)
+        sx = (xmax - xmin) / nx
+        sy = (ymax - ymin) / ny
+        
+        if C is None:
+            C = np.ones(len(x))
+    
+        polygon = [sx, sy / 3] * np.array(
             [[.5, -.5], [.5, .5], [0., 1.], [-.5, .5], [-.5, -.5], [0., -1.]])
 
         if linewidths is None:
