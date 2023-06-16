@@ -27,7 +27,6 @@ import matplotlib
 from matplotlib import _api, _c_internal_utils
 
 
-
 def _get_running_interactive_framework():
     """
     Return the interactive framework whose event loop is currently running, if
@@ -1415,7 +1414,7 @@ def hexbin(x, y, C=None, gridsize=100,
 
     # local import to avoid circular import
     import matplotlib.transforms as mtransforms
-    
+
     # Set the size of the hexagon grid
     if np.iterable(gridsize):
         nx, ny = gridsize
