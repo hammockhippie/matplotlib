@@ -1,6 +1,7 @@
 import functools
 import itertools
 
+import numpy as np
 import pytest
 
 from mpl_toolkits.mplot3d import Axes3D, axes3d, proj3d, art3d
@@ -12,12 +13,11 @@ from matplotlib import colors as mcolors, patches as mpatch
 from matplotlib.testing.decorators import image_comparison, check_figures_equal
 from matplotlib.testing.widgets import mock_event
 from matplotlib.collections import LineCollection, PolyCollection
+from matplotlib.cbook import hexbin
 from matplotlib.patches import Circle, PathPatch
 from matplotlib.path import Path
 from matplotlib.text import Text
-
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 mpl3d_image_comparison = functools.partial(
@@ -30,7 +30,41 @@ def plot_cuboid(ax, scale):
     pts = itertools.combinations(np.array(list(itertools.product(r, r, r))), 2)
     for start, end in pts:
         if np.sum(np.abs(start - end)) == r[1] - r[0]:
-            ax.plot3D(*zip(start*np.array(scale), end*np.array(scale)))
+            ax.plot3D(*zip(start * np.array(scale), end * np.array(scale)))
+
+
+def get_gaussian_bars(mu=(0, 0),
+                      sigma=([0.8, 0.3],
+                             [0.3, 0.5]),
+                      range=(-3, 3),
+                      res=8,
+                      seed=123):
+    np.random.seed(seed)
+    sl = slice(*range, complex(res))
+    xy = np.array(np.mgrid[sl, sl][::-1]).T - mu
+    p = np.linalg.inv(sigma)
+    exp = np.sum(np.moveaxis(xy.T, 0, 1) * (p @ np.moveaxis(xy, 0, -1)), 1)
+    z = np.exp(-exp / 2) / np.sqrt(np.linalg.det(sigma)) / np.pi / 2
+    return *xy.T, z
+
+
+def get_gaussian_hexs(mu=(0, 0),
+                      sigma=([0.8, 0.3],
+                             [0.3, 0.5]),
+                      n=10_000,
+                      res=8,
+                      seed=123):
+    np.random.seed(seed)
+    xy = np.random.multivariate_normal(mu, sigma, n)
+    xyz, (xmin, xmax), (ymin, ymax), (nx, ny) = hexbin(*xy.T, gridsize=res)
+    dxy = np.array([(xmax - xmin) / nx, (ymax - ymin) / ny]) * 0.9
+    return *xyz, dxy
+
+
+bar3d_data_generators = {
+    art3d.Bar3DCollection: get_gaussian_bars,
+    art3d.HexBar3DCollection: get_gaussian_hexs
+}
 
 
 @check_figures_equal(extensions=["png"])
@@ -192,7 +226,7 @@ def test_bar3d_lightsource():
     y = y.ravel()
     dz = x + y
 
-    color = [cm.coolwarm(i/area) for i in range(area)]
+    color = [cm.coolwarm(i / area) for i in range(area)]
 
     collection = ax.bar3d(x=x, y=y, z=0,
                           dx=1, dy=1, dz=dz,
@@ -203,6 +237,102 @@ def test_bar3d_lightsource():
     # precisely (within floating point rounding errors of 4 ULP) the colors
     # from the colormap, due to the illumination parallel to the z-axis.
     np.testing.assert_array_max_ulp(color, collection._facecolor3d[1::6], 4)
+
+
+@pytest.fixture(params=(art3d.Bar3DCollection, art3d.HexBar3DCollection))
+def bar3d_class(request):
+    return request.param
+
+
+# @mpl3d_image_comparison(baseline_images=['bar3d_with_1d_data_Bar3DCollection.png',
+#                                          'bar3d_with_1d_data_HexBar3DCollection.png'])
+@pytest.mark.mpl_image_compare(style='default', remove_text=True)
+def test_bar3d_with_1d_data(bar3d_class):
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+    _plot_bar3d(ax, bar3d_class, 0, 0, 1, ec='0.5', lw=0.5)
+    return fig
+
+
+# @mpl3d_image_comparison(baseline_images=['bar3d_zsort_Bar3DCollection.png',
+#                                          'bar3d_zsort_HexBar3DCollection.png'])
+@pytest.mark.mpl_image_compare(style='default', remove_text=True)
+def test_bar3d_zsort(bar3d_class):
+    fig, axes = plt.subplots(2, 4, subplot_kw={'projection': '3d'})
+    elev = 45
+    azim0, astep = -22.5, 45
+    camera = itertools.product(np.r_[azim0:(180 + azim0):astep], (elev, -elev))
+    # sourcery skip: no-loop-in-tests
+    for ax, (azim, elev) in zip(axes.T.ravel(), camera):
+        _plot_bar3d(ax, bar3d_class,
+                    [0, 1], [0, 1], [1, 2],
+                    azim=azim, elev=elev,
+                    ec='0.5', lw=0.5)
+    return fig
+
+
+# @mpl3d_image_comparison(baseline_images=['bar3d_with_2d_data_Bar3DCollection.png',
+#                                          'bar3d_with_2d_data_HexBar3DCollection.png'])
+@pytest.mark.mpl_image_compare(style='default', remove_text=True)
+def test_bar3d_with_2d_data(bar3d_class):
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+    _plot_bar3d(ax, bar3d_class, *bar3d_data_generators[bar3d_class](),
+                ec='0.5', lw=0.5)
+    return fig
+
+# @mpl3d_image_comparison(baseline_images=['bar3d_facecolors_Bar3DCollection-0.png',
+#                                          'bar3d_facecolors_Bar3DCollection-1.png',
+#                                          'bar3d_facecolors_HexBar3DCollection-0.png'
+#                                          'bar3d_facecolors_HexBar3DCollection-1.png'])
+@pytest.mark.parametrize('shade', (0, 1))
+@pytest.mark.mpl_image_compare(style='default', remove_text=True)
+def test_bar3d_facecolors(bar3d_class, shade):
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+
+    xyz = bar3d_data_generators[bar3d_class]()
+    bars = _plot_bar3d(ax, bar3d_class, *xyz,
+                       facecolors=list(mcolors.CSS4_COLORS)[:xyz[0].size],
+                       edgecolors='0.5', lw=0.5,
+                       shade=shade)
+    return fig
+
+# @mpl3d_image_comparison(baseline_images=['bar3d_cmap_Bar3DCollection-0.png',
+#                                          'bar3d_cmap_Bar3DCollection-1.png',
+#                                          'bar3d_cmap_HexBar3DCollection-0.png'
+#                                          'bar3d_cmap_HexBar3DCollection-1.png'])
+@pytest.mark.parametrize('shade', (0, 1))
+@pytest.mark.mpl_image_compare(style='default', remove_text=True)
+def test_bar3d_cmap(bar3d_class, shade):
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+
+    xyz = bar3d_data_generators[bar3d_class]()
+    bars = _plot_bar3d(ax, bar3d_class, *xyz,
+                       cmap='viridis',
+                       shade=shade,
+                       edgecolors='0.5', lw=0.5)
+    return fig
+
+
+def _plot_bar3d(ax, kls, x, y, z, dxy='0.8', azim=None, elev=None, **kws):
+
+    bars = kls(x, y, z, dxy=dxy, **kws)
+    ax.add_collection(bars)
+
+    viewlim = np.array([(np.min(x), np.max(np.add(x, bars.dx))),
+                        (np.min(y), np.max(np.add(y, bars.dy))),
+                        (min(bars.z0, np.min(z)), np.max(z))])
+
+    if kls is art3d.HexBar3DCollection:
+        viewlim[:2, 0] = viewlim[:2, 0] - np.array([bars.dx / 2, bars.dy / 2]).T
+
+    ax.auto_scale_xyz(*viewlim, False)
+    # ax.set(xlabel='x', ylabel='y', zlabel='z')
+
+    if azim:
+        ax.azim = azim
+    if elev:
+        ax.elev = elev
+
+    return bars
 
 
 @mpl3d_image_comparison(['contour3d.png'], style='mpl20')
@@ -351,7 +481,7 @@ def test_invalid_line_data():
 @mpl3d_image_comparison(['mixedsubplot.png'], style='mpl20')
 def test_mixedsubplots():
     def f(t):
-        return np.cos(2*np.pi*t) * np.exp(-t)
+        return np.cos(2 * np.pi * t) * np.exp(-t)
 
     t1 = np.arange(0.0, 5.0, 0.1)
     t2 = np.arange(0.0, 5.0, 0.02)
@@ -705,13 +835,13 @@ def test_trisurf3d():
     n_angles = 36
     n_radii = 8
     radii = np.linspace(0.125, 1.0, n_radii)
-    angles = np.linspace(0, 2*np.pi, n_angles, endpoint=False)
+    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     angles = np.repeat(angles[..., np.newaxis], n_radii, axis=1)
-    angles[:, 1::2] += np.pi/n_angles
+    angles[:, 1::2] += np.pi / n_angles
 
-    x = np.append(0, (radii*np.cos(angles)).flatten())
-    y = np.append(0, (radii*np.sin(angles)).flatten())
-    z = np.sin(-x*y)
+    x = np.append(0, (radii * np.cos(angles)).flatten())
+    y = np.append(0, (radii * np.sin(angles)).flatten())
+    z = np.sin(-x * y)
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -723,13 +853,13 @@ def test_trisurf3d_shaded():
     n_angles = 36
     n_radii = 8
     radii = np.linspace(0.125, 1.0, n_radii)
-    angles = np.linspace(0, 2*np.pi, n_angles, endpoint=False)
+    angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
     angles = np.repeat(angles[..., np.newaxis], n_radii, axis=1)
-    angles[:, 1::2] += np.pi/n_angles
+    angles[:, 1::2] += np.pi / n_angles
 
-    x = np.append(0, (radii*np.cos(angles)).flatten())
-    y = np.append(0, (radii*np.sin(angles)).flatten())
-    z = np.sin(-x*y)
+    x = np.append(0, (radii * np.cos(angles)).flatten())
+    y = np.append(0, (radii * np.sin(angles)).flatten())
+    z = np.sin(-x * y)
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -818,7 +948,7 @@ def test_quiver3d_masked():
 
     u = np.sin(np.pi * x) * np.cos(np.pi * y) * np.cos(np.pi * z)
     v = -np.cos(np.pi * x) * np.sin(np.pi * y) * np.cos(np.pi * z)
-    w = (2/3)**0.5 * np.cos(np.pi * x) * np.cos(np.pi * y) * np.sin(np.pi * z)
+    w = (2 / 3)**0.5 * np.cos(np.pi * x) * np.cos(np.pi * y) * np.sin(np.pi * z)
     u = np.ma.masked_where((-0.4 < x) & (x < 0.1), u, copy=False)
     v = np.ma.masked_where((0.1 < y) & (y < 0.7), v, copy=False)
 
@@ -939,10 +1069,10 @@ def test_add_collection3d_zs_array():
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    norm = plt.Normalize(0, 2*np.pi)
+    norm = plt.Normalize(0, 2 * np.pi)
     # 2D LineCollection from x & y values
     lc = LineCollection(segments[:, :, :2], cmap='twilight', norm=norm)
-    lc.set_array(np.mod(theta, 2*np.pi))
+    lc.set_array(np.mod(theta, 2 * np.pi))
     # Add 2D collection at z values to ax
     line = ax.add_collection3d(lc, zs=segments[:, :, 2])
 
@@ -967,7 +1097,7 @@ def test_add_collection3d_zs_scalar():
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    norm = plt.Normalize(0, 2*np.pi)
+    norm = plt.Normalize(0, 2 * np.pi)
     lc = LineCollection(segments, cmap='twilight', norm=norm)
     lc.set_array(theta)
     line = ax.add_collection3d(lc, zs=z)
@@ -1118,7 +1248,7 @@ def test_proj_axes_cube_ortho():
 
     fig, ax = _test_proj_draw_axes(M, s=150)
 
-    ax.scatter(txs, tys, s=300-tzs)
+    ax.scatter(txs, tys, s=300 - tzs)
     ax.plot(txs, tys, c='r')
     for x, y, t in zip(txs, tys, ts):
         ax.text(x, y, t)
@@ -1280,7 +1410,7 @@ class TestVoxels:
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
         x, y, z = np.indices((5, 5, 4))
-        voxels = ((x - 2)**2 + (y - 2)**2 + (z-1.5)**2) < 2.2**2
+        voxels = ((x - 2)**2 + (y - 2)**2 + (z - 1.5)**2) < 2.2**2
         v = ax.voxels(voxels, linewidths=3, edgecolor='C1')
 
         # change the edge color of one voxel
@@ -1361,7 +1491,7 @@ class TestVoxels:
         # and plot everything
         ax.voxels(r, g, b, sphere,
                   facecolors=colors,
-                  edgecolors=np.clip(2*colors - 0.5, 0, 1),  # brighter
+                  edgecolors=np.clip(2 * colors - 0.5, 0, 1),  # brighter
                   linewidth=0.5)
 
     def test_calling_conventions(self):
@@ -1526,8 +1656,8 @@ def test_minor_ticks():
 @mpl3d_image_comparison(['errorbar3d_errorevery.png'], style='mpl20')
 def test_errorbar3d_errorevery():
     """Tests errorevery functionality for 3D errorbars."""
-    t = np.arange(0, 2*np.pi+.1, 0.01)
-    x, y, z = np.sin(t), np.cos(3*t), np.sin(5*t)
+    t = np.arange(0, 2 * np.pi + .1, 0.01)
+    x, y, z = np.sin(t), np.cos(3 * t), np.sin(5 * t)
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -1563,16 +1693,16 @@ def test_stem3d():
                             constrained_layout=True,
                             subplot_kw={'projection': '3d'})
 
-    theta = np.linspace(0, 2*np.pi)
-    x = np.cos(theta - np.pi/2)
-    y = np.sin(theta - np.pi/2)
+    theta = np.linspace(0, 2 * np.pi)
+    x = np.cos(theta - np.pi / 2)
+    y = np.sin(theta - np.pi / 2)
     z = theta
 
     for ax, zdir in zip(axs[0], ['x', 'y', 'z']):
         ax.stem(x, y, z, orientation=zdir)
         ax.set_title(f'orientation={zdir}')
 
-    x = np.linspace(-np.pi/2, np.pi/2, 20)
+    x = np.linspace(-np.pi / 2, np.pi / 2, 20)
     y = np.ones_like(x)
     z = np.cos(x)
 
@@ -1755,19 +1885,19 @@ def test_pan():
 
 @pytest.mark.parametrize("tool,button,key,expected",
                          [("zoom", MouseButton.LEFT, None,  # zoom in
-                          ((0.00, 0.06), (0.01, 0.07), (0.02, 0.08))),
+                           ((0.00, 0.06), (0.01, 0.07), (0.02, 0.08))),
                           ("zoom", MouseButton.LEFT, 'x',  # zoom in
-                          ((-0.01, 0.10), (-0.03, 0.08), (-0.06, 0.06))),
+                           ((-0.01, 0.10), (-0.03, 0.08), (-0.06, 0.06))),
                           ("zoom", MouseButton.LEFT, 'y',  # zoom in
-                          ((-0.07, 0.04), (-0.03, 0.08), (0.00, 0.11))),
+                           ((-0.07, 0.04), (-0.03, 0.08), (0.00, 0.11))),
                           ("zoom", MouseButton.RIGHT, None,  # zoom out
-                          ((-0.09, 0.15), (-0.07, 0.17), (-0.06, 0.18))),
+                           ((-0.09, 0.15), (-0.07, 0.17), (-0.06, 0.18))),
                           ("pan", MouseButton.LEFT, None,
-                          ((-0.70, -0.58), (-1.03, -0.91), (-1.27, -1.15))),
+                           ((-0.70, -0.58), (-1.03, -0.91), (-1.27, -1.15))),
                           ("pan", MouseButton.LEFT, 'x',
-                          ((-0.96, -0.84), (-0.58, -0.46), (-0.06, 0.06))),
+                           ((-0.96, -0.84), (-0.58, -0.46), (-0.06, 0.06))),
                           ("pan", MouseButton.LEFT, 'y',
-                          ((0.20, 0.32), (-0.51, -0.39), (-1.27, -1.15)))])
+                           ((0.20, 0.32), (-0.51, -0.39), (-1.27, -1.15)))])
 def test_toolbar_zoom_pan(tool, button, key, expected):
     # NOTE: The expected zoom values are rough ballparks of moving in the view
     #       to make sure we are getting the right direction of motion.
@@ -1904,7 +2034,7 @@ def test_computed_zorder():
     r = 7
     M = 1000
     th = np.linspace(0, 2 * np.pi, M)
-    x, y, z = r * np.cos(th),  r * np.sin(th), angle * r * np.sin(th)
+    x, y, z = r * np.cos(th), r * np.sin(th), angle * r * np.sin(th)
     for ax in (ax3, ax4):
         ax.plot_surface(X2, Y3, Z3,
                         color='blue',
@@ -1985,19 +2115,19 @@ def test_margins():
 
 
 @pytest.mark.parametrize('err, args, kwargs, match', (
-        (ValueError, (-1,), {}, r'margin must be greater than -0\.5'),
-        (ValueError, (1, -1, 1), {}, r'margin must be greater than -0\.5'),
-        (ValueError, (1, 1, -1), {}, r'margin must be greater than -0\.5'),
-        (ValueError, tuple(), {'x': -1}, r'margin must be greater than -0\.5'),
-        (ValueError, tuple(), {'y': -1}, r'margin must be greater than -0\.5'),
-        (ValueError, tuple(), {'z': -1}, r'margin must be greater than -0\.5'),
-        (TypeError, (1, ), {'x': 1},
-         'Cannot pass both positional and keyword'),
-        (TypeError, (1, ), {'x': 1, 'y': 1, 'z': 1},
-         'Cannot pass both positional and keyword'),
-        (TypeError, (1, ), {'x': 1, 'y': 1},
-         'Cannot pass both positional and keyword'),
-        (TypeError, (1, 1), {}, 'Must pass a single positional argument for'),
+    (ValueError, (-1,), {}, r'margin must be greater than -0\.5'),
+    (ValueError, (1, -1, 1), {}, r'margin must be greater than -0\.5'),
+    (ValueError, (1, 1, -1), {}, r'margin must be greater than -0\.5'),
+    (ValueError, tuple(), {'x': -1}, r'margin must be greater than -0\.5'),
+    (ValueError, tuple(), {'y': -1}, r'margin must be greater than -0\.5'),
+    (ValueError, tuple(), {'z': -1}, r'margin must be greater than -0\.5'),
+    (TypeError, (1, ), {'x': 1},
+     'Cannot pass both positional and keyword'),
+    (TypeError, (1, ), {'x': 1, 'y': 1, 'z': 1},
+     'Cannot pass both positional and keyword'),
+    (TypeError, (1, ), {'x': 1, 'y': 1},
+     'Cannot pass both positional and keyword'),
+    (TypeError, (1, 1), {}, 'Must pass a single positional argument for'),
 ))
 def test_margins_errors(err, args, kwargs, match):
     with pytest.raises(err, match=match):
