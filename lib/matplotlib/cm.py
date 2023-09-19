@@ -403,23 +403,17 @@ class VectorMappable:
             The colormap used to map normalized data values to RGBA colors.
 
         """
+
         if isinstance(cmap, str) or not np.iterable(cmap):
             self.scalars = [ScalarMappable(norm, cmap)]
+            self.callbacks = self.scalars[0].callbacks
+            #.connect('changed', self.on_changed)
         else:
+            self.callbacks = cbook.CallbackRegistry(signals=["changed"])
             self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
-        self.callbacks = cbook.CallbackRegistry(signals=["changed"])
+            for sca in self.scalars:
+                sca.callbacks.connect('changed', self.on_changed)
 
-    '''
-    @property
-    def stale(self):
-        if len(self.scalars) == 1:
-            return self.scalars[0].stale
-
-    @stale.setter
-    def stale(self, stale):
-        if len(self.scalars) == 1:
-            self.scalars[0].stale = stale
-    '''
     @property
     def _A(self):
         if len(self.scalars) == 1:
@@ -470,8 +464,6 @@ class VectorMappable:
     def set_clim(self, vmin=None, vmax=None):
         if len(self.scalars) == 1:
             self.scalars[0].set_clim(vmin = vmin, vmax = vmax)
-        print('\ndsadsadsadsdsa',vmin, vmax)
-        #self.changed()
 
     def get_alpha(self):
         if len(self.scalars) == 1:
@@ -507,6 +499,10 @@ class VectorMappable:
         #self.callbacks.process('changed', self)
         #self.stale = True
 
+    def on_changed(self, obj):
+        self.callbacks.process('changed', self)
+
+
     def __getitem__(self, i):
         """
         Let ScalarMappable[i] to return child i for multivariate data
@@ -525,14 +521,14 @@ class VectorMappable:
         """
         for d in self.scalars:
             yield d
-    def __getattr__(self, name):
+    '''def __getattr__(self, name):
         #print(f'getting: {name}')
         return super().__getattr__(name)
 
     def __setattr__(self, name, value):
         #print(f'setting: {name} {value}')
         super().__setattr__(name, value)
-
+    '''
 class ScalarMappable:
     """
     A mixin class to map scalar data to RGBA.
