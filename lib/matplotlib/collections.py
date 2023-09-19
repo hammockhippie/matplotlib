@@ -55,10 +55,10 @@ class Collection(artist.Artist, cm.VectorMappable):
 
       prop[i % len(prop)]
 
-    Each Collection can optionally be used as its own `.ScalarMappable` by
+    Each Collection can optionally be used as its own `.VectorMappable` by
     passing the *norm* and *cmap* parameters to its constructor. If the
-    Collection's `.ScalarMappable` matrix ``_A`` has been set (via a call
-    to `.Collection.set_array`), then at draw time this internal scalar
+    Collection's `.VectorMappable` matrix ``_A`` has been set (via a call
+    to `.Collection.set_array`), then at draw time this internal vector
     mappable will be used to set the ``facecolors`` and ``edgecolors``,
     ignoring those that were manually passed in.
     """
@@ -954,7 +954,7 @@ class Collection(artist.Artist, cm.VectorMappable):
         # update_from for scalarmappable
         self._A = other._A
         self.norm = other.norm
-        self.cmap = other.get_cmap()
+        self.cmap = other.cmap
         self.stale = True
 
 

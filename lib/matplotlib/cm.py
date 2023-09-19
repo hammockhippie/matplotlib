@@ -408,6 +408,18 @@ class VectorMappable:
         else:
             self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
         self.callbacks = cbook.CallbackRegistry(signals=["changed"])
+
+    '''
+    @property
+    def stale(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].stale
+
+    @stale.setter
+    def stale(self, stale):
+        if len(self.scalars) == 1:
+            self.scalars[0].stale = stale
+    '''
     @property
     def _A(self):
         if len(self.scalars) == 1:
@@ -423,7 +435,7 @@ class VectorMappable:
 
     @cmap.setter
     def cmap(self, cmap):
-        return self.set_cmap(cmap)
+        self.set_cmap(cmap)
 
     def get_cmap(self):
         if len(self.scalars) == 1:
@@ -431,12 +443,12 @@ class VectorMappable:
     
     def set_cmap(self, cmap):
         if len(self.scalars) == 1:
-            return self.scalars[0].set_cmap(cmap)
-
+            self.scalars[0].set_cmap(cmap)
 
     def _scale_norm(self, norm, vmin, vmax):
         if len(self.scalars) == 1:
-            return self.scalars[0]._scale_norm(norm, vmin, vmax)
+            self.scalars[0]._scale_norm(norm, vmin, vmax)
+
 
     def to_rgba(self, x, alpha=None, bytes=False, norm=True):
         if len(self.scalars) == 1:
@@ -457,7 +469,9 @@ class VectorMappable:
 
     def set_clim(self, vmin=None, vmax=None):
         if len(self.scalars) == 1:
-            return self.scalars[0].set_clim(vmin = vmin, vmax = vmax)
+            self.scalars[0].set_clim(vmin = vmin, vmax = vmax)
+        print('\ndsadsadsadsdsa',vmin, vmax)
+        #self.changed()
 
     def get_alpha(self):
         if len(self.scalars) == 1:
@@ -471,12 +485,13 @@ class VectorMappable:
     @norm.setter
     def norm(self, norm):
         self.set_norm(norm)
-        #if len(self.scalars) == 1:
-        #    self.scalars[0].norm = norm
 
     def set_norm(self, norm):
         if len(self.scalars) == 1:
             return self.scalars[0].set_norm(norm)
+        #in_init = self.norm is None
+        #if not in_init:
+        #    self.changed()
 
     def autoscale(self):
         if len(self.scalars) == 1:
@@ -489,6 +504,8 @@ class VectorMappable:
     def changed(self):
         if len(self.scalars) == 1:
             return self.scalars[0].changed()
+        #self.callbacks.process('changed', self)
+        #self.stale = True
 
     def __getitem__(self, i):
         """
@@ -508,6 +525,13 @@ class VectorMappable:
         """
         for d in self.scalars:
             yield d
+    def __getattr__(self, name):
+        #print(f'getting: {name}')
+        return super().__getattr__(name)
+
+    def __setattr__(self, name, value):
+        #print(f'setting: {name} {value}')
+        super().__setattr__(name, value)
 
 class ScalarMappable:
     """
