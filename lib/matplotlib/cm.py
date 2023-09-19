@@ -388,6 +388,10 @@ class VectorMappable:
     The VectorMappable applies data normalization before returning RGBA colors
     from the given colormap(s).
     """
+    '''
+    problems:
+    clean up internal callback structure on remove?
+    '''
     def __init__(self, norm=None, cmap=None):
         """
         Parameters
@@ -404,12 +408,15 @@ class VectorMappable:
 
         """
 
+        self.callbacks = cbook.CallbackRegistry(signals=["changed"])
         if isinstance(cmap, str) or not np.iterable(cmap):
             self.scalars = [ScalarMappable(norm, cmap)]
-            self.callbacks = self.scalars[0].callbacks
-            #.connect('changed', self.on_changed)
+            # it would be tempting to just use one layer of callbacks here
+            # i.e. self.callbacks = self.scalars[0].callbacks
+            # but this will require more reformating as it fails in cleanup 
+            # if a colorbar is removed
+            self.scalars[0].callbacks.connect('changed', self.on_changed)
         else:
-            self.callbacks = cbook.CallbackRegistry(signals=["changed"])
             self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
             for sca in self.scalars:
                 sca.callbacks.connect('changed', self.on_changed)
