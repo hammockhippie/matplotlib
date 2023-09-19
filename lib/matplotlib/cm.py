@@ -381,6 +381,133 @@ def _auto_norm_from_scale(scale_cls):
             colors.Normalize)()
     return type(norm)
 
+class VectorMappable:
+    """
+    A mixin class to map multiple scalar data to RGBA.
+
+    The VectorMappable applies data normalization before returning RGBA colors
+    from the given colormap(s).
+    """
+    def __init__(self, norm=None, cmap=None):
+        """
+        Parameters
+        ----------
+        norm : `.Normalize` (or subclass thereof) or str or None
+            The normalizing object which scales data, typically into the
+            interval ``[0, 1]``.
+            If a `str`, a `.Normalize` subclass is dynamically generated based
+            on the scale with the corresponding name.
+            If *None*, *norm* defaults to a *colors.Normalize* object which
+            initializes its scaling based on the first data processed.
+        cmap : str or `~matplotlib.colors.Colormap`
+            The colormap used to map normalized data values to RGBA colors.
+
+        """
+        if isinstance(cmap, str) or not np.iterable(cmap):
+            self.scalars = [ScalarMappable(norm, cmap)]
+        else:
+            self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
+        self.callbacks = cbook.CallbackRegistry(signals=["changed"])
+    @property
+    def _A(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0]._A
+
+    @_A.setter
+    def _A(self, A):
+        if len(self.scalars) == 1:
+            self.scalars[0]._A = A
+    @property
+    def cmap(self):
+        return self.get_cmap()
+
+    @cmap.setter
+    def cmap(self, cmap):
+        return self.set_cmap(cmap)
+
+    def get_cmap(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].get_cmap()
+    
+    def set_cmap(self, cmap):
+        if len(self.scalars) == 1:
+            return self.scalars[0].set_cmap(cmap)
+
+
+    def _scale_norm(self, norm, vmin, vmax):
+        if len(self.scalars) == 1:
+            return self.scalars[0]._scale_norm(norm, vmin, vmax)
+
+    def to_rgba(self, x, alpha=None, bytes=False, norm=True):
+        if len(self.scalars) == 1:
+            return self.scalars[0].to_rgba(x, alpha=alpha, bytes=bytes, norm=norm)
+
+    def set_array(self, A):
+        if len(self.scalars) == 1:
+            return self.scalars[0].set_array(A)
+
+    def get_array(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].get_array()
+
+
+    def get_clim(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].get_clim()
+
+    def set_clim(self, vmin=None, vmax=None):
+        if len(self.scalars) == 1:
+            return self.scalars[0].set_clim(vmin = vmin, vmax = vmax)
+
+    def get_alpha(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].get_alpha()
+
+    @property
+    def norm(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].norm
+
+    @norm.setter
+    def norm(self, norm):
+        self.set_norm(norm)
+        #if len(self.scalars) == 1:
+        #    self.scalars[0].norm = norm
+
+    def set_norm(self, norm):
+        if len(self.scalars) == 1:
+            return self.scalars[0].set_norm(norm)
+
+    def autoscale(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].autoscale()
+
+    def autoscale_None(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].autoscale_None()
+
+    def changed(self):
+        if len(self.scalars) == 1:
+            return self.scalars[0].changed()
+
+    def __getitem__(self, i):
+        """
+        Let ScalarMappable[i] to return child i for multivariate data
+        """
+        return self.scalars[i]
+
+    def __len__(self):
+        """
+        Number of scalars for multivariate data
+        """
+        return len(self.scalars)
+
+    def __iter__(self):
+        """
+        Iterator for plotting multivariate colormaps
+        """
+        for d in self.scalars:
+            yield d
 
 class ScalarMappable:
     """

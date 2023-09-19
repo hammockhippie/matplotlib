@@ -32,7 +32,7 @@ from ._enums import JoinStyle, CapStyle
     "linewidth": ["linewidths", "lw"],
     "offset_transform": ["transOffset"],
 })
-class Collection(artist.Artist, cm.ScalarMappable):
+class Collection(artist.Artist, cm.VectorMappable):
     r"""
     Base class for Collections. Must be subclassed to be usable.
 
@@ -153,7 +153,7 @@ class Collection(artist.Artist, cm.ScalarMappable):
             :doc:`/gallery/misc/zorder_demo` for all defaults and examples.
         """
         artist.Artist.__init__(self)
-        cm.ScalarMappable.__init__(self, norm, cmap)
+        cm.VectorMappable.__init__(self, norm, cmap)
         # list of un-scaled dash patterns
         # this is needed scaling the dash pattern by linewidth
         self._us_linestyles = [(0, None)]
@@ -954,7 +954,7 @@ class Collection(artist.Artist, cm.ScalarMappable):
         # update_from for scalarmappable
         self._A = other._A
         self.norm = other.norm
-        self.cmap = other.cmap
+        self.cmap = other.get_cmap()
         self.stale = True
 
 
