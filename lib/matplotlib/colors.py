@@ -959,7 +959,7 @@ class MultivarColormap:
     Class for holding multiple colormaps in VectorMappable before they are
     passed to independent ScalarMappable objects
     """
-    def __init__(self, name, colormaps, combination_mode, N = None):
+    def __init__(self, name, colormaps, combination_mode):
         """
         Parameters
         ----------
@@ -971,8 +971,6 @@ class MultivarColormap:
             Describe how colormaps are combined in sRGB space
             'Add' -> additive
             'Sub' -> subtractive
-        N : int
-            The number of RGB quantization levels.
         """
         self.name = name
         if not np.iterable(colormaps) or not issubclass(type(colormaps[0]), Colormap):

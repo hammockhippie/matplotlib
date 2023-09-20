@@ -213,10 +213,11 @@ class ColormapRegistry(Mapping):
             return self[mpl.rcParams["image.cmap"]]
 
         # if the user passed in a Colormap, simply return it
-        if isinstance(cmap, colors.Colormap):
+        if isinstance(cmap, colors.Colormap) \
+                or isinstance(cmap, colors.MultivarColormap):
             return cmap
         if isinstance(cmap, str):
-            _api.check_in_list(sorted(_colormaps), cmap=cmap)
+            _api.check_in_list(sorted(self._cmaps), cmap=cmap)
             # otherwise, it must be a string so look it up
             return self[cmap]
         raise TypeError(
@@ -413,27 +414,36 @@ class VectorMappable:
         """
 
         self.callbacks = cbook.CallbackRegistry(signals=["changed"])
-        if isinstance(cmap, str) or not np.iterable(cmap):
+        if isinstance(cmap, colors.MultivarColormap):
+            self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
+            for sca in self.scalars:
+                sca.callbacks.connect('changed', self.on_changed)
+            self._cmap = cmap
+        else: 
+            # i.e type(cmap) is Str
+            # or issubclass(type(cmap), colors.Colorbar)
+            # or cmap is None
             self.scalars = [ScalarMappable(norm, cmap)]
             # it would be tempting to just use one layer of callbacks here
             # i.e. self.callbacks = self.scalars[0].callbacks
             # but this will require more reformating as it fails in cleanup 
             # if a colorbar is removed
             self.scalars[0].callbacks.connect('changed', self.on_changed)
-        else:
-            self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
-            for sca in self.scalars:
-                sca.callbacks.connect('changed', self.on_changed)
 
     @property
     def _A(self):
         if len(self.scalars) == 1:
             return self.scalars[0]._A
+        else:
+            return np.array([s._A for s in self.scalars])
 
     @_A.setter
     def _A(self, A):
         if len(self.scalars) == 1:
             self.scalars[0]._A = A
+        else:
+            for i, s in enumerate(self.scalars):
+                s._A = A[i]
     @property
     def cmap(self):
         return self.get_cmap()
@@ -445,45 +455,76 @@ class VectorMappable:
     def get_cmap(self):
         if len(self.scalars) == 1:
             return self.scalars[0].get_cmap()
+        else:
+            return self._cmap
     
     def set_cmap(self, cmap):
         if len(self.scalars) == 1:
             self.scalars[0].set_cmap(cmap)
-
+        else:
+            for s, cm in zip(self.scalars, cmap):
+                s.set_cmap(cm)
+            self._cmap = cmap
     def _scale_norm(self, norm, vmin, vmax):
         if len(self.scalars) == 1:
             self.scalars[0]._scale_norm(norm, vmin, vmax)
+        else:
+            for s, n, vm, vx in zip(self.scalars, norm, vmin, vmax):
+                s._scale_norm(n, vm, vx)
 
 
-    def to_rgba(self, x, alpha=None, bytes=False, norm=True):
+    def to_rgba(self, arr, alpha=None, bytes=False, norm=True):
         if len(self.scalars) == 1:
-            return self.scalars[0].to_rgba(x, alpha=alpha, bytes=bytes, norm=norm)
-
+            return self.scalars[0].to_rgba(arr, alpha=alpha, bytes=bytes, norm=norm)
+        else:
+            rgba = self.scalars[0].to_rgba(arr[0], alpha=alpha, bytes=bytes, norm=norm)
+            for s, a in zip(self.scalars[1:], arr[1:]):
+                rgba += s.to_rgba(a, alpha=alpha, bytes=bytes, norm=norm)
+            if self._cmap.combination_mode == 'Sub':    
+                rgba[:,:,:3] -= len(self.scalars)-1
+            return rgba
     def set_array(self, A):
+        #self._A = A
         if len(self.scalars) == 1:
             return self.scalars[0].set_array(A)
+        for s, a in zip(self.scalars, A):
+            s.set_array(a)
 
     def get_array(self):
-        if len(self.scalars) == 1:
-            return self.scalars[0].get_array()
+        return self._A
+        #if len(self.scalars) == 1:
+        #    return self.scalars[0].get_array()
 
 
     def get_clim(self):
         if len(self.scalars) == 1:
             return self.scalars[0].get_clim()
+        else:
+            return ([s.get_clim() for s in self.scalars])
 
     def set_clim(self, vmin=None, vmax=None):
         if len(self.scalars) == 1:
             self.scalars[0].set_clim(vmin = vmin, vmax = vmax)
+        else:
+            for s, vm, vx in zip(self.scalars, vmin, vmax):
+                s.set_clim(vmin = vm, vmax = vx)
 
     def get_alpha(self):
-        if len(self.scalars) == 1:
-            return self.scalars[0].get_alpha()
+        """
+        Returns
+        -------
+        float
+            Always returns 1.
+        """
+        # This method is intended to be overridden by Artist sub-classes
+        return 1
 
     @property
     def norm(self):
         if len(self.scalars) == 1:
             return self.scalars[0].norm
+        else:
+            return ([s.norm for s in self.scalars])
 
     @norm.setter
     def norm(self, norm):
@@ -492,17 +533,21 @@ class VectorMappable:
     def set_norm(self, norm):
         if len(self.scalars) == 1:
             return self.scalars[0].set_norm(norm)
+        else:
+            for s, n in zip(self.scalars, norm):
+                s.set_norm(n)
+
         #in_init = self.norm is None
         #if not in_init:
         #    self.changed()
 
     def autoscale(self):
-        if len(self.scalars) == 1:
-            return self.scalars[0].autoscale()
+        for s in self.scalars:
+            s.autoscale()
 
     def autoscale_None(self):
-        if len(self.scalars) == 1:
-            return self.scalars[0].autoscale_None()
+        for s in self.scalars:
+            s.autoscale_None()
 
     def changed(self):
         if len(self.scalars) == 1:

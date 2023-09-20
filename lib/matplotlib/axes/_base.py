@@ -207,6 +207,83 @@ def _process_plot_format(fmt, *, ambiguous_fmt_datakey=False):
     return linestyle, marker, color
 
 
+def get_variates_from_cmap(cmap):
+    """
+    Returns number of variates supported by the cmap
+    """
+    if (type(cmap) is str and cmap in mpl.colormaps())  \
+            or issubclass(type(cmap), mcolors.Colormap) \
+            or cmap is None:
+        return 1
+    if (type(cmap) is str and cmap in mpl.multivar_colormaps()) \
+            or issubclass(type(cmap), mcolors.MultivarColormap):
+        # do not make copy just to check length
+        return len(mpl.multivar_colormaps._cmaps[cmap])
+
+    # cmap is not a valid colormap or multivar_colormap
+    if type(cmap) is str:
+        raise ValueError(
+            f"{cmap!r} is not a valid value for cmap"
+            f"; supported values for scalar data are "
+            f"{', '.join(name for name in mpl.colormaps)}."
+            f"see *str(matplotlib.multivar_colormaps)* "
+            f"for avaialble multivariate colormaps"
+            )
+    else:
+        raise TypeError(
+            f"cmap expects None or an instance of a str, Colormap or "
+            f"MultivarColormap, you passed {cmap!r} of type {type(cmap)}"
+        )
+
+def sanitize_multivariate_data(n_variates, data, norm, vmin, vmax):
+    """
+    Ensures that the data, norm, cmap, vmin and vmax have the 
+    correct number of elements
+    A single argument for norm, vmin or vmax will be repeated n times in the
+    output.
+    
+    returns:
+        norm, vmin, vmax
+        each a lists of length n_variates
+    """
+
+    n = n_variates
+    if len(data[0].shape) != 2 or len(data) != n:
+        raise ValueError(
+            f'For the selected colormap the data must be '
+            f'{n}x{data[0].shape}, not {len(data)}x{data[0].shape}')
+
+    if isinstance(norm, str) or not np.iterable(norm):
+        norm = [norm for i in range(n)]
+    else:
+        if len(norm) != n:
+            raise ValueError(
+                f'Unable to map the input for norm ({norm}) to {n} '
+                f'variables.')
+
+    if not np.iterable(vmin):
+        vmin = [vmin for i in range(n)]
+    else:
+        if len(vmin) != n:
+            raise ValueError(
+                f'Unable to map the input for vmin ({vmin}) to {n} '
+                f'variables.')
+
+    if not np.iterable(vmax):
+        vmax = [vmax for i in range(n)]
+    else:
+        if len(vmax) != n:
+            raise ValueError(
+                f'Unable to map the input for vmax ({vmax}) to {n} '
+                f'variables.')
+        vmax = vmax
+
+    return norm, vmin, vmax
+
+
+
+                    
+
 class _process_plot_var_args:
     """
     Process variable length arguments to `~.Axes.plot`, to support ::
