@@ -509,7 +509,9 @@ class VectorMappable:
     def on_changed(self, obj):
         self.callbacks.process('changed', self)
 
-
+    '''
+    # cannot make this iterable 
+    # causes error with flattening the hierarchy of artists
     def __getitem__(self, i):
         """
         Let ScalarMappable[i] to return child i for multivariate data
@@ -528,6 +530,7 @@ class VectorMappable:
         """
         for d in self.scalars:
             yield d
+    '''
     '''def __getattr__(self, name):
         #print(f'getting: {name}')
         return super().__getattr__(name)
