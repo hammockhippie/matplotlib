@@ -24,6 +24,7 @@ import matplotlib as mpl
 from matplotlib import _api, colors, cbook, scale
 from matplotlib._cm import datad
 from matplotlib._cm_listed import cmaps as cmaps_listed
+from matplotlib._cm_listed_multivar import cmap_families as multivar_cmaps
 
 
 _LUTSIZE = mpl.rcParams['image.lut']
@@ -229,6 +230,9 @@ class ColormapRegistry(Mapping):
 # detail.
 _colormaps = ColormapRegistry(_gen_cmap_registry())
 globals().update(_colormaps)
+
+_multivar_colormaps = ColormapRegistry(multivar_cmaps)
+globals().update(_multivar_colormaps)
 
 
 @_api.deprecated("3.7", alternative="``matplotlib.colormaps.register(name)``")
@@ -531,6 +535,7 @@ class VectorMappable:
         for d in self.scalars:
             yield d
     '''
+
     '''def __getattr__(self, name):
         #print(f'getting: {name}')
         return super().__getattr__(name)

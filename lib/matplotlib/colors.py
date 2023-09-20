@@ -954,6 +954,65 @@ class Colormap:
         """Return a copy of the colormap."""
         return self.__copy__()
 
+class MultivarColormap:
+    """
+    Class for holding multiple colormaps in VectorMappable before they are
+    passed to independent ScalarMappable objects
+    """
+    def __init__(self, name, colormaps, combination_mode, N = None):
+        """
+        Parameters
+        ----------
+        name : str
+            The name of the colormap family.
+        colormaps: list or tuple of Colormap objects
+            The individual colormaps that are combined
+        combination_mode: str, 'Add' or 'Sub'
+            Describe how colormaps are combined in sRGB space
+            'Add' -> additive
+            'Sub' -> subtractive
+        N : int
+            The number of RGB quantization levels.
+        """
+        self.name = name
+        if not np.iterable(colormaps) or not issubclass(type(colormaps[0]), Colormap):
+            raise ValueError("colormaps must be a list of objects that sublcass"
+                                 f"Colormap, not strings or list of strings")
+        self.colormaps = colormaps
+
+        if not combination_mode in ['Add', 'Sub']:
+            raise ValueError("combination_mode must be 'Add' or 'Sub',"
+                                 f" {name!r} is not allowed.")
+        self.combination_mode = combination_mode
+
+    def copy(self):
+        """Return a copy of the multivarcolormap."""
+        return self.__copy__()
+
+    def __copy__(self):
+        cls = self.__class__
+        cmapobject = cls.__new__(cls)
+        cmapobject.__dict__.update(self.__dict__)
+        cmapobject.colormaps = [cm.copy() for cm in self.colormaps]
+        return cmapobject
+
+    def __getitem__(self, item):
+        try:
+            return self.colormaps[item]
+        except KeyError:
+            raise KeyError(f"only {[i for i in range(len(colormaps))]} are"
+                f" valid keys for MultipleColormap, not {item!r}")
+
+    def __iter__(self):
+        for c in self.colormaps:
+            yield c
+
+    def __len__(self):
+        return len(self.colormaps)
+
+    def __str__(self):
+        return self.name
+
 
 class LinearSegmentedColormap(Colormap):
     """
