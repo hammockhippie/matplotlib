@@ -399,16 +399,20 @@ class VectorMappable:
     '''
     def __init__(self, norm=None, cmap=None):
         """
+        For multivariate data, a MultivariateColormap must be provided and 
+        norm must be a list of valid objects with length matching the colormap
+
         Parameters
         ----------
-        norm : `.Normalize` (or subclass thereof) or str or None
+        norm : `.Normalize` (or subclass thereof) or str or None or list thereof
             The normalizing object which scales data, typically into the
             interval ``[0, 1]``.
             If a `str`, a `.Normalize` subclass is dynamically generated based
             on the scale with the corresponding name.
             If *None*, *norm* defaults to a *colors.Normalize* object which
             initializes its scaling based on the first data processed.
-        cmap : str or `~matplotlib.colors.Colormap`
+        cmap : str or `~matplotlib.colors.Colormap` 
+                                    or `~matplotlib.colors.MultivariateColormap`
             The colormap used to map normalized data values to RGBA colors.
 
         """
@@ -459,13 +463,30 @@ class VectorMappable:
             return self._cmap
     
     def set_cmap(self, cmap):
+        """
+        Set the colormaps for luminance data.
+
+        Parameters
+        ----------
+        cmap : `.Colormap` or str or None or list thereof
+        """
         if len(self.scalars) == 1:
             self.scalars[0].set_cmap(cmap)
         else:
             for s, cm in zip(self.scalars, cmap):
                 s.set_cmap(cm)
             self._cmap = cmap
+
     def _scale_norm(self, norm, vmin, vmax):
+        """
+        Helper for initial scaling.
+
+        Used by public functions that create a VectorMappable and support
+        parameters *vmin*, *vmax* and *norm*. This makes sure that a *norm*
+        will take precedence over *vmin*, *vmax*.
+
+        Note that this method does not set the norm.
+        """
         if len(self.scalars) == 1:
             self.scalars[0]._scale_norm(norm, vmin, vmax)
         else:
@@ -474,35 +495,82 @@ class VectorMappable:
 
 
     def to_rgba(self, arr, alpha=None, bytes=False, norm=True):
+        """
+        Return a normalized RGBA array corresponding to *arr*.
+
+        See ScalarMappable.to_rgba for behaviour with scalar or RGBA data
+
+        For multivariate data, each variate is converted independently before combination
+        in sRGB space according to the rules of the colormap
+        """
         if len(self.scalars) == 1:
             return self.scalars[0].to_rgba(arr, alpha=alpha, bytes=bytes, norm=norm)
         else:
             rgba = self.scalars[0].to_rgba(arr[0], alpha=alpha, bytes=bytes, norm=norm)
             for s, a in zip(self.scalars[1:], arr[1:]):
                 rgba += s.to_rgba(a, alpha=alpha, bytes=bytes, norm=norm)
+
             if self._cmap.combination_mode == 'Sub':    
                 rgba[:,:,:3] -= len(self.scalars)-1
             return rgba
+
     def set_array(self, A):
-        #self._A = A
+        """
+        Set the value array from array-like *A*.
+
+        Parameters
+        ----------
+        A : array-like or None
+            The values that are mapped to colors.
+
+            The base class `.ScalarMappable` does not make any assumptions on
+            the dimensionality and shape of the value array *A*.
+        """
         if len(self.scalars) == 1:
             return self.scalars[0].set_array(A)
         for s, a in zip(self.scalars, A):
             s.set_array(a)
 
     def get_array(self):
+        """
+        Return the array of values, that are mapped to colors.
+        """
         return self._A
-        #if len(self.scalars) == 1:
-        #    return self.scalars[0].get_array()
+
 
 
     def get_clim(self):
+        """
+        Return the values (min, max) that are mapped to the colormap limits.
+        """
         if len(self.scalars) == 1:
             return self.scalars[0].get_clim()
         else:
-            return ([s.get_clim() for s in self.scalars])
+            vmin = []
+            vmax = []
+            for s in self.scalars:
+                vn, vx = s.get_clim()
+                vmin.append(vn)
+                vmax.append(vx)
+            return vmin, vmax
 
     def set_clim(self, vmin=None, vmax=None):
+        """
+        Set the norm limits for image scaling.
+
+        Parameters
+        ----------
+        vmin, vmax : float
+             The limits.
+
+             For scalar data the limits may also be passed as a tuple 
+             (*vmin*, *vmax*) as a single positional argument.
+            
+             For vector data *vmin* and *vmax* must be passed as lists
+             of floats
+
+             .. ACCEPTS: (vmin: float, vmax: float)
+        """
         if len(self.scalars) == 1:
             self.scalars[0].set_clim(vmin = vmin, vmax = vmax)
         else:
@@ -531,6 +599,19 @@ class VectorMappable:
         self.set_norm(norm)
 
     def set_norm(self, norm):
+        """
+        Set the normalization instance.
+
+        Parameters
+        ----------
+        norm : `.Normalize` or str or None or list thereof
+
+        Notes
+        -----
+        If there are any colorbars using the mappable for this norm, setting
+        the norm of the mappable will reset the norm, locator, and formatters
+        on the colorbar to default.
+        """
         if len(self.scalars) == 1:
             return self.scalars[0].set_norm(norm)
         else:
@@ -542,32 +623,35 @@ class VectorMappable:
         #    self.changed()
 
     def autoscale(self):
+        """
+        Autoscale the scalar limits on the norms using the current arrays
+        """
         for s in self.scalars:
             s.autoscale()
 
     def autoscale_None(self):
+        """
+        Autoscale the scalar limits on the norms using the
+        current arrays, changing only limits that are None
+        """
         for s in self.scalars:
             s.autoscale_None()
 
     def changed(self):
         """
-        Manually call this whenever a mappable is changed to notify all the
-        callbackSM listeners listening to the mappables to the 'changed' 
+        Call this whenever a ScalarMappable is changed to notify all the
+        callbackSM listeners listening to the VectorMappable to the 'changed' 
         signal.
         """
-        self.on_changed()
-        #Most likely, the VectorMappable is the only one listening to the signals
-        #of the ScalarMappables, and sending the singal(s) is equivalent
-        #to running self.on_changed()
-        #if len(self.scalars) == 1:
-        #    return self.scalars[0].changed()
+        self.callbacks.process('changed', self)
 
     def on_changed(self, obj = None):
         """
-        Call this whenever a mappable is changed to notify all the
-        callbackSM listeners to the 'changed' signal.
+        Called on the signal 'changed' from the ScalarMappables
+
+        Propagate the signal to listeners on the VectorMappable
         """
-        self.callbacks.process('changed', self)
+        self.changed()
 
     '''
     # cannot make this iterable 
