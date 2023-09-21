@@ -386,6 +386,30 @@ def _auto_norm_from_scale(scale_cls):
             colors.Normalize)()
     return type(norm)
 
+
+
+def merge_signals(fn):
+    """
+    If multiple ScalarMappable part of a VectorMappable emit 'changed' signals
+    this decorator works to merge them into one so that only one  'changed'
+    signal is emited by the VectorMappable
+    """
+    @functools.wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        # suspend signals
+        self.pause_signals = True
+        self.intercepted_changed = False
+        # run fn
+        out = fn(self, *args, **kwargs)
+        # resume signals
+        self.pause_signals = False
+        # send 'changed' signal if any were intercepted
+        if self.intercepted_changed:
+            self.changed()
+        return out
+
+    return wrapper
+
 class VectorMappable:
     """
     A mixin class to map multiple scalar data to RGBA.
@@ -416,6 +440,7 @@ class VectorMappable:
             The colormap used to map normalized data values to RGBA colors.
 
         """
+        self.pause_signals = False
 
         self.callbacks = cbook.CallbackRegistry(signals=["changed"])
         if isinstance(cmap, colors.MultivarColormap):
@@ -461,7 +486,8 @@ class VectorMappable:
             return self.scalars[0].get_cmap()
         else:
             return self._cmap
-    
+
+    @merge_signals
     def set_cmap(self, cmap):
         """
         Set the colormaps for luminance data.
@@ -477,6 +503,7 @@ class VectorMappable:
                 s.set_cmap(cm)
             self._cmap = cmap
 
+    @merge_signals
     def _scale_norm(self, norm, vmin, vmax):
         """
         Helper for initial scaling.
@@ -514,6 +541,7 @@ class VectorMappable:
                 rgba[:,:,:3] -= len(self.scalars)-1
             return rgba
 
+    @merge_signals
     def set_array(self, A):
         """
         Set the value array from array-like *A*.
@@ -554,6 +582,7 @@ class VectorMappable:
                 vmax.append(vx)
             return vmin, vmax
 
+    @merge_signals
     def set_clim(self, vmin=None, vmax=None):
         """
         Set the norm limits for image scaling.
@@ -595,6 +624,7 @@ class VectorMappable:
             return ([s.norm for s in self.scalars])
 
     @norm.setter
+    @merge_signals
     def norm(self, norm):
         self.set_norm(norm)
 
@@ -622,6 +652,7 @@ class VectorMappable:
         #if not in_init:
         #    self.changed()
 
+    @merge_signals
     def autoscale(self):
         """
         Autoscale the scalar limits on the norms using the current arrays
@@ -629,6 +660,7 @@ class VectorMappable:
         for s in self.scalars:
             s.autoscale()
 
+    @merge_signals
     def autoscale_None(self):
         """
         Autoscale the scalar limits on the norms using the
@@ -643,7 +675,10 @@ class VectorMappable:
         callbackSM listeners listening to the VectorMappable to the 'changed' 
         signal.
         """
-        self.callbacks.process('changed', self)
+        if not self.pause_signals:
+            self.callbacks.process('changed', self)
+        else:
+            self.intercepted_changed = True # for the merge_signals decorator
 
     def on_changed(self, obj = None):
         """
