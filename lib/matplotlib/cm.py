@@ -550,12 +550,23 @@ class VectorMappable:
             s.autoscale_None()
 
     def changed(self):
-        if len(self.scalars) == 1:
-            return self.scalars[0].changed()
-        #self.callbacks.process('changed', self)
-        #self.stale = True
+        """
+        Manually call this whenever a mappable is changed to notify all the
+        callbackSM listeners listening to the mappables to the 'changed' 
+        signal.
+        """
+        self.on_changed()
+        #Most likely, the VectorMappable is the only one listening to the signals
+        #of the ScalarMappables, and sending the singal(s) is equivalent
+        #to running self.on_changed()
+        #if len(self.scalars) == 1:
+        #    return self.scalars[0].changed()
 
-    def on_changed(self, obj):
+    def on_changed(self, obj = None):
+        """
+        Call this whenever a mappable is changed to notify all the
+        callbackSM listeners to the 'changed' signal.
+        """
         self.callbacks.process('changed', self)
 
     '''
