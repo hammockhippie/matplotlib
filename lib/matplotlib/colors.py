@@ -1269,6 +1269,225 @@ class ListedColormap(Colormap):
         new_cmap._rgba_bad = self._rgba_bad
         return new_cmap
 
+class BivariateColormap:
+    """
+    Baseclass for all bivarate to RGBA mappings.
+
+    Designed as a drop-in replcement for Colormap when using a 2D 
+    lookup table. To be used with VectorMappable.
+    """
+    def __init__(self, name, N=256, M=None):
+        """
+        Parameters
+        ----------
+        name : str
+            The name of the colormap.
+        N : int
+            The number of RGB quantization levels along the first.
+        M : int
+            The number of RGB quantization levels along the second axis.
+            if None, M = N
+        """
+        self.name = name
+        self.N = int(N)  # ensure that N is always int
+        if M is None:
+            self.M = N
+        else:
+            self.M = int(M)
+        self._rgba_bad = (0.0, 0.0, 0.0, 0.0)  # If bad, don't paint anything.
+        self._rgba_outside = None
+        self._isinit = False
+        '''#: When this colormap exists on a scalar mappable and colorbar_extend
+        #: is not False, colorbar creation will pick up ``colorbar_extend`` as
+        #: the default value for the ``extend`` keyword in the
+        #: `matplotlib.colorbar.Colorbar` constructor.
+        self.colorbar_extend = False'''
+
+    def __call__(self, X, alpha=None, bytes=False):
+        r"""
+        Parameters
+        ----------
+        X : tuple (X0, X1)
+            X0 and X1:
+            float or int, `~numpy.ndarray` or scalar
+            The data value(s) to convert to RGBA.
+            For floats, *X* should be in the interval ``[0.0, 1.0]`` to
+            return the RGBA values ``X*100`` percent along the Colormap line.
+            For integers, *X* should be in the interval ``[0, Colormap.N)`` to
+            return RGBA values *indexed* from the Colormap with index ``X``.
+        alpha : float or array-like or None
+            Alpha must be a scalar between 0 and 1, a sequence of such
+            floats with shape matching X, or None.
+        bytes : bool
+            If False (default), the returned RGBA values will be floats in the
+            interval ``[0, 1]`` otherwise they will be `numpy.uint8`\s in the
+            interval ``[0, 255]``.
+
+        Returns
+        -------
+        Tuple of RGBA values if X is scalar, otherwise an array of
+        RGBA values with a shape of ``X.shape + (4, )``.
+        """
+        if not self._isinit:
+            self._init()
+
+        xa = np.array(X, copy=True)
+        if not xa.dtype.isnative:
+            # Native byteorder is faster.
+            xa = xa.byteswap().view(xa.dtype.newbyteorder())
+
+        if xa.dtype.kind == "f":
+            xa[0] *= self.N
+            # xa == 1 (== N after multiplication) is not out of range.
+            xa[0][xa[0] == self.N] = self.N - 1
+            xa[1] *= self.M
+            # xa == 1 (== N after multiplication) is not out of range.
+            xa[1][xa[1] == self.M] = self.M - 1
+        # Pre-compute the masks before casting to int (which can truncate
+        mask_outside = xa[0] < 0 & xa[1] < 0 & xa[0] >= N & xa[1] >= M 
+        # If input was masked, get the bad mask from it; else mask out nans.
+        mask_bad = X[0].mask & X[1].mask if np.ma.is_masked(X) \
+                else np.isnan(xa[0]) & np.isnan(xa[1])
+        with np.errstate(invalid="ignore"):
+            # We need this cast for unsigned ints as well as floats
+            xa = xa.astype(int)
+
+        # Set masked values to zero
+        # The corresponding rgb values will be replaced later
+        xa[mask_outside] = 0
+        xa[mask_bad] = 0
+
+        lut = self._lut
+        if bytes:
+            lut = (lut * 255).astype(np.uint8)
+
+        rgba = lut[xa[0], xa[1]]
+        rgba[mask_outside] = self._rgba_outside
+        rgba[mask_bad] = self._rgba_bad
+
+        if alpha is not None:
+            alpha = np.clip(alpha, 0, 1)
+            if bytes:
+                alpha *= 255  # Will be cast to uint8 upon assignment.
+            if alpha.shape not in [(), xa.shape]:
+                raise ValueError(
+                    f"alpha is array-like but its shape {alpha.shape} does "
+                    f"not match that of X {xa.shape}")
+            rgba[..., -1] = alpha
+            # If the "bad" color is all zeros, then ignore alpha input.
+            if (np.array(self._rgba_bad) == 0).all():
+                rgba[mask_bad] = (0, 0, 0, 0)
+
+        if not np.iterable(X[0]):
+            rgba = tuple(rgba)
+        return rgba
+
+    def __copy__(self):
+        cls = self.__class__
+        cmapobject = cls.__new__(cls)
+        cmapobject.__dict__.update(self.__dict__)
+        if self._isinit:
+            cmapobject._lut = np.copy(self._lut)
+        return cmapobject
+
+    def __eq__(self, other):
+        if not isinstance(other, BivariateColormap):
+            return False
+        # To compare lookup tables the Colormaps have to be initialized
+        if not self._isinit:
+            self._init()
+        if not other._isinit:
+            other._init()
+        return np.array_equal(self._lut, other._lut)
+
+    def get_bad(self):
+        """Get the color for masked values."""
+        return self._rgba_outside
+
+    def set_bad(self, color='k', alpha=None):
+        """Set the color for masked values."""
+        self._rgba_bad = to_rgba(color, alpha)
+
+    def get_outside(self):
+        """Get the color for out-of-range values."""
+        return self._rgba_outside
+
+    def set_outside(self, color='k', alpha=None):
+        """Set the color for out-of-range values."""
+        self._rgba_outside = to_rgba(color, alpha)
+
+
+
+    def _init(self):
+        """Generate the lookup table, ``self._lut``."""
+        raise NotImplementedError("Abstract class only")
+
+
+    def transform(self, rot = 0, flip_0 = False, flip_1 = False, name=None):
+        """
+        Return a rotated and/or flipped instance of the Colormap.
+
+        .. note:: This function is not implemented for the base class.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name for the transformed colormap.
+        """
+        raise NotImplementedError()
+
+    def _repr_png_(self):
+        """Generate a PNG representation of the Colormap."""
+        if not self._isinit:
+            self._init()
+
+        pixels = (self._lut * 255).astype(np.uint8)
+        png_bytes = io.BytesIO()
+        title = self.name + ' BivariateColormap'
+        author = f'Matplotlib v{mpl.__version__}, https://matplotlib.org'
+        pnginfo = PngInfo()
+        pnginfo.add_text('Title', title)
+        pnginfo.add_text('Description', title)
+        pnginfo.add_text('Author', author)
+        pnginfo.add_text('Software', author)
+        Image.fromarray(pixels).save(png_bytes, format='png', pnginfo=pnginfo)
+        return png_bytes.getvalue()
+
+    def _repr_html_(self):
+        """Generate an HTML representation of the Colormap."""
+        png_bytes = self._repr_png_()
+        png_base64 = base64.b64encode(png_bytes).decode('ascii')
+        def color_block(color):
+            hex_color = to_hex(color, keep_alpha=True)
+            return (f'<div title="{hex_color}" '
+                    'style="display: inline-block; '
+                    'width: 1em; height: 1em; '
+                    'margin: 0; '
+                    'vertical-align: middle; '
+                    'border: 1px solid #555; '
+                    f'background-color: {hex_color};"></div>')
+
+        return ('<div style="vertical-align: middle;">'
+                f'<strong>{self.name}</strong> '
+                '</div>'
+                '<div class="cmap"><img '
+                f'alt="{self.name} BivariateColormap" '
+                f'title="{self.name}" '
+                'style="border: 1px solid #555;" '
+                f'src="data:image/png;base64,{png_base64}"></div>'
+                '<div style="vertical-align: middle; '
+                f'max-width: {_REPR_PNG_SIZE[0]+2}px; '
+                'display: flex; justify-content: space-between;">'
+                '<div style="float: left;">'
+                f'{color_block(self.get_outside())} outside'
+                '</div>'
+                '<div style="float: right;">'
+                f'bad {color_block(self.get_bad())}'
+                '</div>')
+
+    def copy(self):
+        """Return a copy of the colormap."""
+        return self.__copy__()
 
 class Normalize:
     """
