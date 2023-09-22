@@ -25,6 +25,7 @@ from matplotlib import _api, colors, cbook, scale
 from matplotlib._cm import datad
 from matplotlib._cm_listed import cmaps as cmaps_listed
 from matplotlib._cm_listed_multivar import cmap_families as multivar_cmaps
+from matplotlib._cm_bivar import cmaps as bivar_cmaps
 
 
 _LUTSIZE = mpl.rcParams['image.lut']
