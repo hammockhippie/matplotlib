@@ -72,7 +72,7 @@ def test_save_blitted_widget_as_pdf():
 def test_rectangle_selector(ax, kwargs):
     onselect = mock.Mock(spec=noop, return_value=None)
 
-    tool = widgets.RectangleSelector(ax, onselect, **kwargs)
+    tool = widgets.RectangleSelector(ax, onselect=onselect, **kwargs)
     do_event(tool, 'press', xdata=100, ydata=100, button=1)
     do_event(tool, 'onmove', xdata=199, ydata=199, button=1)
 
@@ -106,7 +106,7 @@ def test_rectangle_minspan(ax, spancoords, minspanx, x1, minspany, y1):
         minspanx, minspany = (ax.transData.transform((x1, y1)) -
                               ax.transData.transform((x0, y0)))
 
-    tool = widgets.RectangleSelector(ax, onselect, interactive=True,
+    tool = widgets.RectangleSelector(ax, onselect=onselect, interactive=True,
                                      spancoords=spancoords,
                                      minspanx=minspanx, minspany=minspany)
     # Too small to create a selector
@@ -133,7 +133,7 @@ def test_rectangle_minspan(ax, spancoords, minspanx, x1, minspany, y1):
 
 
 def test_deprecation_selector_visible_attribute(ax):
-    tool = widgets.RectangleSelector(ax, lambda *args: None)
+    tool = widgets.RectangleSelector(ax, onselect=noop)
 
     assert tool.get_visible()
 
@@ -596,7 +596,7 @@ def test_rectangle_selector_onselect(ax, interactive):
     # check when press and release events take place at the same position
     onselect = mock.Mock(spec=noop, return_value=None)
 
-    tool = widgets.RectangleSelector(ax, onselect, interactive=interactive)
+    tool = widgets.RectangleSelector(ax, onselect=onselect, interactive=interactive)
     # move outside of axis
     click_and_drag(tool, start=(100, 110), end=(150, 120))
 
@@ -612,7 +612,7 @@ def test_rectangle_selector_onselect(ax, interactive):
 def test_rectangle_selector_ignore_outside(ax, ignore_event_outside):
     onselect = mock.Mock(spec=noop, return_value=None)
 
-    tool = widgets.RectangleSelector(ax, onselect,
+    tool = widgets.RectangleSelector(ax, onselect=onselect,
                                      ignore_event_outside=ignore_event_outside)
     click_and_drag(tool, start=(100, 110), end=(150, 120))
     onselect.assert_called_once()
@@ -984,7 +984,7 @@ def test_span_selector_snap(ax):
 def test_lasso_selector(ax, kwargs):
     onselect = mock.Mock(spec=noop, return_value=None)
 
-    tool = widgets.LassoSelector(ax, onselect, **kwargs)
+    tool = widgets.LassoSelector(ax, onselect=onselect, **kwargs)
     do_event(tool, 'press', xdata=100, ydata=100, button=1)
     do_event(tool, 'onmove', xdata=125, ydata=125, button=1)
     do_event(tool, 'release', xdata=150, ydata=150, button=1)
@@ -995,7 +995,8 @@ def test_lasso_selector(ax, kwargs):
 def test_lasso_selector_set_props(ax):
     onselect = mock.Mock(spec=noop, return_value=None)
 
-    tool = widgets.LassoSelector(ax, onselect, props=dict(color='b', alpha=0.2))
+    tool = widgets.LassoSelector(ax, onselect=onselect,
+                                 props=dict(color='b', alpha=0.2))
 
     artist = tool._selection_artist
     assert mcolors.same_color(artist.get_color(), 'b')
@@ -1377,7 +1378,7 @@ def check_polygon_selector(event_sequence, expected_result, selections_count,
 
     onselect = mock.Mock(spec=noop, return_value=None)
 
-    tool = widgets.PolygonSelector(ax, onselect, **kwargs)
+    tool = widgets.PolygonSelector(ax, onselect=onselect, **kwargs)
 
     for (etype, event_args) in event_sequence:
         do_event(tool, etype, **event_args)
