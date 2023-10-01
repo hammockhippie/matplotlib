@@ -236,6 +236,9 @@ globals().update(_colormaps)
 _multivar_colormaps = ColormapRegistry(multivar_cmaps)
 globals().update(_multivar_colormaps)
 
+_bivar_colormaps = ColormapRegistry(bivar_cmaps)
+globals().update(_bivar_colormaps)
+
 
 @_api.deprecated("3.7", alternative="``matplotlib.colormaps.register(name)``")
 def register_cmap(name=None, cmap=None, *, override_builtin=False):
@@ -416,7 +419,7 @@ class VectorMappable:
     A mixin class to map multiple scalar data to RGBA.
 
     The VectorMappable applies data normalization before returning RGBA colors
-    from the given colormap(s).
+    from the given MultivareColormap or BivarColormap.
     """
     '''
     problems:
@@ -446,6 +449,11 @@ class VectorMappable:
         self.callbacks = cbook.CallbackRegistry(signals=["changed"])
         if isinstance(cmap, colors.MultivarColormap):
             self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
+            for sca in self.scalars:
+                sca.callbacks.connect('changed', self.on_changed)
+            self._cmap = cmap
+        elif isinstance(cmap, colors.BivarColormap):
+            self.scalars = [ScalarMappable(n) for n in norm]
             for sca in self.scalars:
                 sca.callbacks.connect('changed', self.on_changed)
             self._cmap = cmap
@@ -532,15 +540,23 @@ class VectorMappable:
         in sRGB space according to the rules of the colormap
         """
         if len(self.scalars) == 1:
-            return self.scalars[0].to_rgba(arr, alpha=alpha, bytes=bytes, norm=norm)
-        else:
+            rgba = self.scalars[0].to_rgba(arr, alpha=alpha, bytes=bytes, norm=norm)
+
+        elif isinstance(self._cmap, colors.BivarColormap):
+            normed_0 = self.scalars[0].norm(arr[0])
+            normed_1 = self.scalars[1].norm(arr[1])
+            colors.clip_bivar(normed_0, normed_1, self._cmap.shape)
+            rgba = self.cmap((normed_0,normed_1))
+
+        else: # i.e. isinstance(self._cmaps, colors.MultivarColormap)
             rgba = self.scalars[0].to_rgba(arr[0], alpha=alpha, bytes=bytes, norm=norm)
             for s, a in zip(self.scalars[1:], arr[1:]):
                 rgba += s.to_rgba(a, alpha=alpha, bytes=bytes, norm=norm)
 
             if self._cmap.combination_mode == 'Sub':    
                 rgba[:,:,:3] -= len(self.scalars)-1
-            return rgba
+
+        return rgba
 
     @merge_signals
     def set_array(self, A):
@@ -1054,6 +1070,8 @@ def _ensure_cmap(cmap):
     Ensure that we have a `.Colormap` object.
 
     For internal use to preserve type stability of errors.
+    
+    see also `axes._base.ensure_cmap`
 
     Parameters
     ----------
@@ -1076,3 +1094,5 @@ def _ensure_cmap(cmap):
     if cmap_name not in _colormaps:
         _api.check_in_list(sorted(_colormaps), cmap=cmap_name)
     return mpl.colormaps[cmap_name]
+
+

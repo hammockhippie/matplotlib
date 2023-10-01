@@ -2,7 +2,7 @@
 # date: 2023-09-23
 
 import numpy as np
-from matplotlib.colors import SegmentedBivariateColormap
+from matplotlib.colors import SegmentedBivarColormap
 
 BiFlat = np.array([
   0.000,0.777,1.000,0.000,0.777,1.000,0.000,0.778,1.000,0.000,0.778,0.996,0.000,0.778,0.982,0.000,
@@ -5714,22 +5714,22 @@ BiGreens = np.array([
   0.751,0.951,0.894]).reshape((9,9,3))
 
 cmaps = {
-  "BiFlat":SegmentedBivariateColormap(BiFlat, "BiFlat", 256, "square"),
-  "BiPeak":SegmentedBivariateColormap(BiPeak, "BiPeak", 256, "square"),
-  "BiAbyss":SegmentedBivariateColormap(BiAbyss, "BiAbyss", 256, "square"),
-  "BiHsv":SegmentedBivariateColormap(BiHsv, "BiHsv", 256, "square"),
-  "BiFourCorners":SegmentedBivariateColormap(BiFourCorners, "BiFourCorners", 256, "square"),
-  "BiFourEdges":SegmentedBivariateColormap(BiFourEdges, "BiFourEdges", 256, "square"),
-  "BiOrangeBlue":SegmentedBivariateColormap(BiOrangeBlue, "BiOrangeBlue", 256, "square"),
-  "BiGreenPurple":SegmentedBivariateColormap(BiGreenPurple, "BiGreenPurple", 256, "square"),
-  "BiGreenTealBlue":SegmentedBivariateColormap(BiGreenTealBlue, "BiGreenTealBlue", 256, "square"),
-  "BiBarrel":SegmentedBivariateColormap(BiBarrel, "BiBarrel", 256, "square"),
-  "BiCut":SegmentedBivariateColormap(BiCut, "BiCut", 256, "square"),
-  "BiBlues":SegmentedBivariateColormap(BiBlues, "BiBlues", 256, "square"),
-  "BiYellows":SegmentedBivariateColormap(BiYellows, "BiYellows", 256, "square"),
-  "BiReds":SegmentedBivariateColormap(BiReds, "BiReds", 256, "square"),
-  "BiGreens":SegmentedBivariateColormap(BiGreens, "BiGreens", 256, "square"),
-  "BiDisk":SegmentedBivariateColormap(BiFlat, "BiDisk", 256, "circle"),
-  "BiCone":SegmentedBivariateColormap(BiPeak, "BiCone", 256, "circle"),
-  "BiFunnel":SegmentedBivariateColormap(BiAbyss, "BiFunnel", 256, "circle"),
+  "BiFlat":SegmentedBivarColormap(BiFlat, "BiFlat", 256, "square"),
+  "BiPeak":SegmentedBivarColormap(BiPeak, "BiPeak", 256, "square"),
+  "BiAbyss":SegmentedBivarColormap(BiAbyss, "BiAbyss", 256, "square"),
+  "BiHsv":SegmentedBivarColormap(BiHsv, "BiHsv", 256, "square"),
+  "BiFourCorners":SegmentedBivarColormap(BiFourCorners, "BiFourCorners", 256, "square"),
+  "BiFourEdges":SegmentedBivarColormap(BiFourEdges, "BiFourEdges", 256, "square"),
+  "BiOrangeBlue":SegmentedBivarColormap(BiOrangeBlue, "BiOrangeBlue", 256, "square"),
+  "BiGreenPurple":SegmentedBivarColormap(BiGreenPurple, "BiGreenPurple", 256, "square"),
+  "BiGreenTealBlue":SegmentedBivarColormap(BiGreenTealBlue, "BiGreenTealBlue", 256, "square"),
+  "BiBarrel":SegmentedBivarColormap(BiBarrel, "BiBarrel", 256, "square"),
+  "BiCut":SegmentedBivarColormap(BiCut, "BiCut", 256, "square"),
+  "BiBlues":SegmentedBivarColormap(BiBlues, "BiBlues", 256, "square"),
+  "BiYellows":SegmentedBivarColormap(BiYellows, "BiYellows", 256, "square"),
+  "BiReds":SegmentedBivarColormap(BiReds, "BiReds", 256, "square"),
+  "BiGreens":SegmentedBivarColormap(BiGreens, "BiGreens", 256, "square"),
+  "BiDisk":SegmentedBivarColormap(BiFlat, "BiDisk", 256, "circle"),
+  "BiCone":SegmentedBivarColormap(BiPeak, "BiCone", 256, "circle"),
+  "BiFunnel":SegmentedBivarColormap(BiAbyss, "BiFunnel", 256, "circle"),
 }

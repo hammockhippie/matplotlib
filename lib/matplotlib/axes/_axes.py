@@ -33,7 +33,7 @@ import matplotlib.units as munits
 from matplotlib import _api, _docstring, _preprocess_data
 from matplotlib.axes._base import (
     _AxesBase, _TransformedBoundsLocator, _process_plot_format, 
-    sanitize_multivariate_data, get_variates_from_cmap)
+    sanitize_multivariate_data, ensure_cmap)
 from matplotlib.axes._secondary_axes import SecondaryAxis
 from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
 
@@ -6291,7 +6291,8 @@ default: :rc:`scatter.edgecolors`
         kwargs.setdefault('edgecolors', 'none')
 
 
-        n_variates = get_variates_from_cmap(cmap)
+        cmap = ensure_cmap(cmap)
+        n_variates = cmap.n_variates
 
         X, Y, C, shading = self._pcolorargs('pcolormesh', *args,
             shading=shading, n_variates = n_variates, kwargs=kwargs)
@@ -6299,7 +6300,6 @@ default: :rc:`scatter.edgecolors`
         if n_variates > 1:
             norm, vmin, vmax = \
                             sanitize_multivariate_data(n_variates, C, norm, vmin, vmax)
-            cmap = mpl.multivar_colormaps.get_cmap(cmap)
 
         coords = np.stack([X, Y], axis=-1)
 

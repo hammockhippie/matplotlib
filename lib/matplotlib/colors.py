@@ -693,6 +693,7 @@ class Colormap:
         self._i_over = self.N + 1
         self._i_bad = self.N + 2
         self._isinit = False
+        self.n_variates = 1
         #: When this colormap exists on a scalar mappable and colorbar_extend
         #: is not False, colorbar creation will pick up ``colorbar_extend`` as
         #: the default value for the ``extend`` keyword in the
@@ -984,6 +985,8 @@ class MultivarColormap:
                                  f" {name!r} is not allowed.")
         self.combination_mode = combination_mode
 
+        self.n_variates = len(colormaps)
+
     def copy(self):
         """Return a copy of the multivarcolormap."""
         return self.__copy__()
@@ -1270,7 +1273,7 @@ class ListedColormap(Colormap):
         new_cmap._rgba_bad = self._rgba_bad
         return new_cmap
 
-class BivariateColormap:
+class BivarColormap:
     """
     Baseclass for all bivarate to RGBA mappings.
 
@@ -1295,7 +1298,8 @@ class BivariateColormap:
                 is displayed
             If 'ignore' the variates are not clipped, but instead assigned the
                 'outside' color
-            If 'circleignore' a circular mask is applied, but the data is not clipped
+            If 'circleignore' a circular mask is applied, but the data is not 
+                clipped but instead assigned the 'outside' color
 
         """
         self.name = name
@@ -1308,6 +1312,7 @@ class BivariateColormap:
         self._rgba_bad = (0.0, 0.0, 0.0, 0.0)  # If bad, don't paint anything.
         self._rgba_outside = (1.0, 0.0, 1.0, 1.0)
         self._isinit = False
+        self.n_variates = 2
         '''#: When this colormap exists on a scalar mappable and colorbar_extend
         #: is not False, colorbar creation will pick up ``colorbar_extend`` as
         #: the default value for the ``extend`` keyword in the
@@ -1355,7 +1360,8 @@ class BivariateColormap:
             # xa == 1 (== N after multiplication) is not out of range.
             xa[1][xa[1] == self.M] = self.M - 1
         # Pre-compute the masks before casting to int (which can truncate
-        mask_outside = xa[0] < 0 & xa[1] < 0 & xa[0] >= N & xa[1] >= M 
+        mask_outside = (xa[0] < 0) | (xa[1] < 0) \
+                     | (xa[0] >= self.N) | (xa[1] >= self.M) 
         # If input was masked, get the bad mask from it; else mask out nans.
         mask_bad = X[0].mask & X[1].mask if np.ma.is_masked(X) \
                 else np.isnan(xa[0]) & np.isnan(xa[1])
@@ -1365,8 +1371,8 @@ class BivariateColormap:
 
         # Set masked values to zero
         # The corresponding rgb values will be replaced later
-        xa[mask_outside] = 0
-        xa[mask_bad] = 0
+        xa[:,mask_outside] = 0
+        xa[:,mask_bad] = 0
 
         lut = self._lut
         if bytes:
@@ -1393,6 +1399,37 @@ class BivariateColormap:
             rgba = tuple(rgba)
         return rgba
 
+    @property
+    def lut(self):
+        """
+        For external access to the lut, i.e. for displaying the cmap.
+        For circular colormaps this returns a lut with a circular mask.
+        
+        Internal functions (such as to_rgb()) should use _lut
+        which stores the lut without a circular mask
+        A lut without the circular mask is needed in to_rgb() because the 
+        conversion from floats to ints results in some some pixel-requests
+        just outside of the circular mask
+        
+        """
+        if not self._isinit:
+            self._init()
+        lut = np.copy(self._lut)
+        if self.shape == 'circle' or self.shape == 'circleignore':
+            n = np.linspace(-1,1,self.N)
+            m = np.linspace(-1,1,self.M)
+            radii_sqr = (n**2)[:,np.newaxis] + (m**2)[np.newaxis,:]
+            mask_outside = radii_sqr > 1
+            lut[mask_outside,3] = 0
+        return lut
+
+
+    @lut.setter
+    def lut(self):
+        raise AttributeError(
+            "You cannot set the lut of an already existing bivariate colormap"
+            " instead you should create a new colormap with the desired lut")
+
     def __copy__(self):
         cls = self.__class__
         cmapobject = cls.__new__(cls)
@@ -1402,7 +1439,7 @@ class BivariateColormap:
         return cmapobject
 
     def __eq__(self, other):
-        if not isinstance(other, BivariateColormap):
+        if not isinstance(other, BivarColormap):
             return False
         # To compare lookup tables the Colormaps have to be initialized
         if not self._isinit:
@@ -1454,7 +1491,7 @@ class BivariateColormap:
 
         pixels = (self._lut[::-1,:,:] * 255).astype(np.uint8)
         png_bytes = io.BytesIO()
-        title = self.name + ' BivariateColormap'
+        title = self.name + ' BivarColormap'
         author = f'Matplotlib v{mpl.__version__}, https://matplotlib.org'
         pnginfo = PngInfo()
         pnginfo.add_text('Title', title)
@@ -1482,7 +1519,7 @@ class BivariateColormap:
                 f'<strong>{self.name}</strong> '
                 '</div>'
                 '<div class="cmap"><img '
-                f'alt="{self.name} BivariateColormap" '
+                f'alt="{self.name} BivarColormap" '
                 f'title="{self.name}" '
                 'style="border: 1px solid #555;" '
                 f'src="data:image/png;base64,{png_base64}"></div>'
@@ -1500,9 +1537,9 @@ class BivariateColormap:
         """Return a copy of the colormap."""
         return self.__copy__()
 
-class SegmentedBivariateColormap(BivariateColormap):
+class SegmentedBivarColormap(BivarColormap):
     """
-    BivariateColormap object generated by supersampling a regular grid
+    BivarColormap object generated by supersampling a regular grid
 
     Parameters
     ----------
@@ -1539,9 +1576,9 @@ class SegmentedBivariateColormap(BivariateColormap):
         _image.resample(_patch, self._lut, transform, 1)
         self._isinit = True
 
-class BivariateColormapFromImage(BivariateColormap):
+class BivarColormapFromImage(BivarColormap):
     """
-    BivariateColormap object generated by supersampling a regular grid
+    BivarColormap object generated by supersampling a regular grid
 
     Parameters
     ----------
@@ -1564,6 +1601,45 @@ class BivariateColormapFromImage(BivariateColormap):
 
     def _init(self):
         self._isinit = True
+
+def clip_bivar(x0, x1, shape):
+    
+    '''
+    Clips x0 and x1 according to the 'shape' 
+    x0 and x1 are modified in-place
+
+    Parameters
+    ----------
+    x0, x1: np.array
+        arrays of floats to be clipped
+    shape: str 'square' or 'circle' or 'ignore' or 'circleignore'
+        If 'square' each variate is clipped to [0,1] independently
+        If 'circle' the variates are clipped radially to the center
+            of the colormap, and a circular mask is applied when the colormap
+            is displayed
+        If 'ignore' the variates are not clipped, but instead assigned the
+            'outside' color
+        If 'circleignore' a circular mask is applied, but the data is not clipped
+
+    '''
+    if shape == 'square':
+        x0[x0<0] = 0
+        x0[x0>1] = 1
+        x1[x1<0] = 0
+        x1[x1>1] = 1
+    elif shape == 'circle':
+        radii_sqr = (x0-0.5)**2 + (x1-0.5)**2
+        mask_outside = radii_sqr > 0.25
+        overextend = 2*np.sqrt(radii_sqr[mask_outside])
+        x0[mask_outside] = (x0[mask_outside]-0.5)/overextend + 0.5
+        x1[mask_outside] = (x1[mask_outside]-0.5)/overextend + 0.5
+    elif shape == 'circleignore':
+        radii_sqr = (x0-0.5)**2 + (x1-0.5)**2
+        mask_outside = radii_sqr > 0.25
+        x0[mask_outside] = -1
+        x1[mask_outside] = -1
+    #elif shape == 'ignore': # do nothing
+    #    ...
 
 class Normalize:
     """

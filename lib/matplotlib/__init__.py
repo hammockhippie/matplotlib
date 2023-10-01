@@ -1506,4 +1506,5 @@ _log.debug('platform is %s', sys.platform)
 # colormap creation depends on rcParams
 from matplotlib.cm import _colormaps as colormaps
 from matplotlib.cm import _multivar_colormaps as multivar_colormaps
+from matplotlib.cm import _bivar_colormaps as bivar_colormaps
 from matplotlib.colors import _color_sequences as color_sequences
