@@ -950,7 +950,7 @@ class Colormap:
                 '</div>'
                 '<div style="float: right;">'
                 f'over {color_block(self.get_over())}'
-                '</div>')
+                '</div></div>')
 
     def copy(self):
         """Return a copy of the colormap."""
@@ -1014,6 +1014,16 @@ class MultivarColormap:
 
     def __str__(self):
         return self.name
+
+    def _repr_png_(self):
+        raise NotImplementedError("no png representation of MultivarColormap"
+            " but you may access png repreesntations of the undvidual"
+            " colorbars.")
+
+    def _repr_html_(self):
+        """Generate an HTML representation of the MultivarColormap."""
+        return ''.join([c._repr_html_() for c in self.colormaps])
+
 
 
 class LinearSegmentedColormap(Colormap):
@@ -1473,7 +1483,7 @@ class BivarColormap:
 
     def transform(self, rot = 0, flip_0 = False, flip_1 = False, name=None):
         """
-        Return a rotated and/or flipped instance of the Colormap.
+        Return a rotated and/or flipped instance of the BivarColormap.
 
         .. note:: This function is not implemented for the base class.
 
@@ -1485,7 +1495,7 @@ class BivarColormap:
         raise NotImplementedError()
 
     def _repr_png_(self):
-        """Generate a PNG representation of the Colormap."""
+        """Generate a PNG representation of the BivarColormap."""
         if not self._isinit:
             self._init()
 
