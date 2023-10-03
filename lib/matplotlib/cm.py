@@ -391,12 +391,11 @@ def _auto_norm_from_scale(scale_cls):
     return type(norm)
 
 
-
 def merge_signals(fn):
     """
-    If multiple ScalarMappable part of a VectorMappable emit 'changed' signals
+    If multiple ScalarMappables part of a VectorMappable emit 'changed' signals
     this decorator works to merge them into one so that only one  'changed'
-    signal is emited by the VectorMappable
+    signal is emitted by the VectorMappable
     """
     @functools.wraps(fn)
     def wrapper(self, *args, **kwargs):
@@ -414,6 +413,7 @@ def merge_signals(fn):
 
     return wrapper
 
+
 class VectorMappable:
     """
     A mixin class to map multiple scalar data to RGBA.
@@ -421,13 +421,9 @@ class VectorMappable:
     The VectorMappable applies data normalization before returning RGBA colors
     from the given MultivareColormap or BivarColormap.
     """
-    '''
-    problems:
-    clean up internal callback structure on remove?
-    '''
     def __init__(self, norm=None, cmap=None):
         """
-        For multivariate data, a MultivariateColormap must be provided and 
+        For multivariate data, a MultivariateColormap must be provided and
         norm must be a list of valid objects with length matching the colormap
 
         Parameters
@@ -439,7 +435,7 @@ class VectorMappable:
             on the scale with the corresponding name.
             If *None*, *norm* defaults to a *colors.Normalize* object which
             initializes its scaling based on the first data processed.
-        cmap : str or `~matplotlib.colors.Colormap` 
+        cmap : str or `~matplotlib.colors.Colormap`
                                     or `~matplotlib.colors.MultivariateColormap`
             The colormap used to map normalized data values to RGBA colors.
 
@@ -448,7 +444,7 @@ class VectorMappable:
 
         self.callbacks = cbook.CallbackRegistry(signals=["changed"])
         if isinstance(cmap, colors.MultivarColormap):
-            self.scalars = [ScalarMappable(n,c) for n, c in zip(norm, cmap)]
+            self.scalars = [ScalarMappable(n, c) for n, c in zip(norm, cmap)]
             for sca in self.scalars:
                 sca.callbacks.connect('changed', self.on_changed)
             self._cmap = cmap
@@ -457,14 +453,14 @@ class VectorMappable:
             for sca in self.scalars:
                 sca.callbacks.connect('changed', self.on_changed)
             self._cmap = cmap
-        else: 
+        else:
             # i.e type(cmap) is Str
             # or issubclass(type(cmap), colors.Colorbar)
             # or cmap is None
             self.scalars = [ScalarMappable(norm, cmap)]
             # it would be tempting to just use one layer of callbacks here
             # i.e. self.callbacks = self.scalars[0].callbacks
-            # but this will require more reformating as it fails in cleanup 
+            # but this will require more reformatting as it fails in cleanup
             # if a colorbar is removed
             self.scalars[0].callbacks.connect('changed', self.on_changed)
 
@@ -482,6 +478,7 @@ class VectorMappable:
         else:
             for i, s in enumerate(self.scalars):
                 s._A = A[i]
+
     @property
     def cmap(self):
         return self.get_cmap()
@@ -529,15 +526,14 @@ class VectorMappable:
             for s, n, vm, vx in zip(self.scalars, norm, vmin, vmax):
                 s._scale_norm(n, vm, vx)
 
-
     def to_rgba(self, arr, alpha=None, bytes=False, norm=True):
         """
         Return a normalized RGBA array corresponding to *arr*.
 
         See ScalarMappable.to_rgba for behaviour with scalar or RGBA data
 
-        For multivariate data, each variate is converted independently before combination
-        in sRGB space according to the rules of the colormap
+        For multivariate data, each variate is converted independently before
+        combination in sRGB space according to the rules of the colormap
         """
         if len(self.scalars) == 1:
             rgba = self.scalars[0].to_rgba(arr, alpha=alpha, bytes=bytes, norm=norm)
@@ -545,17 +541,16 @@ class VectorMappable:
         elif isinstance(self._cmap, colors.BivarColormap):
             normed_0 = self.scalars[0].norm(arr[0])
             normed_1 = self.scalars[1].norm(arr[1])
-            colors.clip_bivar(normed_0, normed_1, self._cmap.shape)
-            rgba = self.cmap((normed_0,normed_1))
+            self._cmap.clip(normed_0, normed_1)
+            rgba = self.cmap((normed_0, normed_1))
 
-        else: # i.e. isinstance(self._cmaps, colors.MultivarColormap)
+        else:  # i.e. isinstance(self._cmaps, colors.MultivarColormap)
             rgba = self.scalars[0].to_rgba(arr[0], alpha=alpha, bytes=bytes, norm=norm)
             for s, a in zip(self.scalars[1:], arr[1:]):
                 rgba += s.to_rgba(a, alpha=alpha, bytes=bytes, norm=norm)
 
-            if self._cmap.combination_mode == 'Sub':    
-                rgba[:,:,:3] -= len(self.scalars)-1
-
+            if self._cmap.combination_mode == 'Sub':
+                rgba[:, :, :3] -= len(self.scalars) - 1
         return rgba
 
     @merge_signals
@@ -582,8 +577,6 @@ class VectorMappable:
         """
         return self._A
 
-
-
     def get_clim(self):
         """
         Return the values (min, max) that are mapped to the colormap limits.
@@ -609,19 +602,19 @@ class VectorMappable:
         vmin, vmax : float
              The limits.
 
-             For scalar data the limits may also be passed as a tuple 
+             For scalar data the limits may also be passed as a tuple
              (*vmin*, *vmax*) as a single positional argument.
-            
+
              For vector data *vmin* and *vmax* must be passed as lists
              of floats
 
              .. ACCEPTS: (vmin: float, vmax: float)
         """
         if len(self.scalars) == 1:
-            self.scalars[0].set_clim(vmin = vmin, vmax = vmax)
+            self.scalars[0].set_clim(vmin=vmin, vmax=vmax)
         else:
             for s, vm, vx in zip(self.scalars, vmin, vmax):
-                s.set_clim(vmin = vm, vmax = vx)
+                s.set_clim(vmin=vm, vmax=vx)
 
     def get_alpha(self):
         """
@@ -665,9 +658,9 @@ class VectorMappable:
             for s, n in zip(self.scalars, norm):
                 s.set_norm(n)
 
-        #in_init = self.norm is None
-        #if not in_init:
-        #    self.changed()
+        # in_init = self.norm is None
+        # if not in_init:
+        #     self.changed()
 
     @merge_signals
     def autoscale(self):
@@ -689,15 +682,15 @@ class VectorMappable:
     def changed(self):
         """
         Call this whenever a ScalarMappable is changed to notify all the
-        callbackSM listeners listening to the VectorMappable to the 'changed' 
+        callbackSM listeners listening to the VectorMappable to the 'changed'
         signal.
         """
         if not self.pause_signals:
             self.callbacks.process('changed', self)
         else:
-            self.intercepted_changed = True # for the merge_signals decorator
+            self.intercepted_changed = True  # for the merge_signals decorator
 
-    def on_changed(self, obj = None):
+    def on_changed(self, obj=None):
         """
         Called on the signal 'changed' from the ScalarMappables
 
@@ -705,37 +698,7 @@ class VectorMappable:
         """
         self.changed()
 
-    '''
-    # cannot make this iterable 
-    # causes error with flattening the hierarchy of artists
-    def __getitem__(self, i):
-        """
-        Let ScalarMappable[i] to return child i for multivariate data
-        """
-        return self.scalars[i]
 
-    def __len__(self):
-        """
-        Number of scalars for multivariate data
-        """
-        return len(self.scalars)
-
-    def __iter__(self):
-        """
-        Iterator for plotting multivariate colormaps
-        """
-        for d in self.scalars:
-            yield d
-    '''
-
-    '''def __getattr__(self, name):
-        #print(f'getting: {name}')
-        return super().__getattr__(name)
-
-    def __setattr__(self, name, value):
-        #print(f'setting: {name} {value}')
-        super().__setattr__(name, value)
-    '''
 class ScalarMappable:
     """
     A mixin class to map scalar data to RGBA.
@@ -1070,7 +1033,7 @@ def _ensure_cmap(cmap):
     Ensure that we have a `.Colormap` object.
 
     For internal use to preserve type stability of errors.
-    
+
     see also `axes._base.ensure_cmap`
 
     Parameters
@@ -1094,5 +1057,3 @@ def _ensure_cmap(cmap):
     if cmap_name not in _colormaps:
         _api.check_in_list(sorted(_colormaps), cmap=cmap_name)
     return mpl.colormaps[cmap_name]
-
-

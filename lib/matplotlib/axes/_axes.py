@@ -32,7 +32,7 @@ import matplotlib.tri as mtri
 import matplotlib.units as munits
 from matplotlib import _api, _docstring, _preprocess_data
 from matplotlib.axes._base import (
-    _AxesBase, _TransformedBoundsLocator, _process_plot_format, 
+    _AxesBase, _TransformedBoundsLocator, _process_plot_format,
     sanitize_multivariate_data, ensure_cmap)
 from matplotlib.axes._secondary_axes import SecondaryAxis
 from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
@@ -5764,8 +5764,8 @@ default: :rc:`scatter.edgecolors`
         self.add_image(im)
         return im
 
-    def _pcolorargs(self, funcname, *args, n_variates = 1,
-                     shading='auto', **kwargs):
+    def _pcolorargs(self, funcname, *args, n_variates=1,
+                    shading='auto', **kwargs):
         # - create X and Y if not present;
         # - reshape X and Y as needed if they are 1-D;
         # - check for proper sizes based on `shading` kwarg;
@@ -6290,16 +6290,15 @@ default: :rc:`scatter.edgecolors`
         shading = shading.lower()
         kwargs.setdefault('edgecolors', 'none')
 
-
         cmap = ensure_cmap(cmap)
         n_variates = cmap.n_variates
 
-        X, Y, C, shading = self._pcolorargs('pcolormesh', *args,
-            shading=shading, n_variates = n_variates, kwargs=kwargs)
+        X, Y, C, shading = self._pcolorargs('pcolormesh', *args, shading=shading,
+                                            n_variates=n_variates, kwargs=kwargs)
 
         if n_variates > 1:
-            norm, vmin, vmax = \
-                            sanitize_multivariate_data(n_variates, C, norm, vmin, vmax)
+            norm, vmin, vmax = sanitize_multivariate_data(n_variates, C, norm,
+                                                          vmin, vmax)
 
         coords = np.stack([X, Y], axis=-1)
 

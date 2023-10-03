@@ -2031,7 +2031,7 @@ class _MeshData:
         if A is not None:
             shape = np.shape(A)
             if shape not in ok_shapes and \
-                        not ((shape[1:] == (h, w) and shape[0]<9)):
+                        not ((shape[1:] == (h, w) and shape[0] < 9)):
                 raise ValueError(
                     f"For X ({width}) and Y ({height}) with {self._shading} "
                     f"shading, A should have shape "
