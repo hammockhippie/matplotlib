@@ -256,7 +256,7 @@ def ensure_cmap(cmap):
     raise ValueError(msg)
 
 
-def sanitize_multivariate_data(n_variates, data, norm, vmin, vmax):
+def ensure_multivariate_norm(n_variates, data, norm, vmin, vmax):
     """
     Ensure that the data, norm, cmap, vmin and vmax have the correct number of elements.
     A single argument for norm, vmin or vmax will be repeated n times in the
