@@ -215,7 +215,8 @@ class ColormapRegistry(Mapping):
 
         # if the user passed in a Colormap, simply return it
         if isinstance(cmap, colors.Colormap) \
-                or isinstance(cmap, colors.MultivarColormap):
+                or isinstance(cmap, colors.MultivarColormap)\
+                or isinstance(cmap, colors.BivarColormap):
             return cmap
         if isinstance(cmap, str):
             _api.check_in_list(sorted(self._cmaps), cmap=cmap)
@@ -797,7 +798,23 @@ class ScalarMappable:
                 elif x.shape[2] == 4:
                     xx = x
                 else:
-                    raise ValueError("Third dimension must be 3 or 4")
+                    if x.shape[2] > 4 and x.shape[0] == 2:
+                        raise ValueError("For RGB or RGBA image data the third "
+                                         "dimension must be 3 or 4. Bivariate"
+                                         "data may in some cases be visualized "
+                                         "by specifying a bivariate or multivariate "
+                                         "colormap. See matplotlib.bivar_colormaps() "
+                                         "and matplotlib.multivar_colormaps() for "
+                                         "lists of suitable candidates.")
+                    elif x.shape[2] > 4 and x.shape[0] < 9:
+                        raise ValueError("For RGB or RGBA image data the third "
+                                         "dimension must be 3 or 4. Multivariate"
+                                         "data may in some cases be visualized "
+                                         "by specifying a multivariate colormap. "
+                                         "See matplotlib.multivar_colormaps() for "
+                                         "a list of suitable candidates.")
+                    else:
+                        raise ValueError("Third dimension must be 3 or 4")
                 if xx.dtype.kind == 'f':
                     if norm and (xx.max() > 1 or xx.min() < 0):
                         raise ValueError("Floating point image RGB values "
