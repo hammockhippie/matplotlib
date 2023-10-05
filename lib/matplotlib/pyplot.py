@@ -99,7 +99,6 @@ if TYPE_CHECKING:
     from matplotlib.collections import (
         Collection,
         LineCollection,
-        BrokenBarHCollection,
         PolyCollection,
         PathCollection,
         EventCollection,
@@ -479,7 +478,7 @@ def draw_if_interactive(*args, **kwargs):
 
 
 # This function's signature is rewritten upon backend-load by switch_backend.
-def show(*args, **kwargs):
+def show(*args, **kwargs) -> None:
     """
     Display all open figures.
 
@@ -2873,7 +2872,7 @@ def broken_barh(
     *,
     data=None,
     **kwargs,
-) -> BrokenBarHCollection:
+) -> PolyCollection:
     return gca().broken_barh(
         xranges, yrange, **({"data": data} if data is not None else {}), **kwargs
     )
@@ -3670,7 +3669,7 @@ def scatter(
     x: float | ArrayLike,
     y: float | ArrayLike,
     s: float | ArrayLike | None = None,
-    c: Sequence[ColorType] | ColorType | None = None,
+    c: ArrayLike | Sequence[ColorType] | ColorType | None = None,
     marker: MarkerType | None = None,
     cmap: str | Colormap | None = None,
     norm: str | Normalize | None = None,
@@ -3953,7 +3952,7 @@ def tick_params(axis: Literal["both", "x", "y"] = "both", **kwargs) -> None:
 def ticklabel_format(
     *,
     axis: Literal["both", "x", "y"] = "both",
-    style: Literal["", "sci", "scientific", "plain"] = "",
+    style: Literal["", "sci", "scientific", "plain"] | None = None,
     scilimits: tuple[int, int] | None = None,
     useOffset: bool | float | None = None,
     useLocale: bool | None = None,

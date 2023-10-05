@@ -208,7 +208,7 @@ class Tick(martist.Artist):
         """Set tick direction.  Valid values are 'out', 'in', 'inout'."""
         # This method is responsible for updating `_pad`, and, in subclasses,
         # for setting the tick{1,2}line markers as well.  From the user
-        # perspective this should always be called though _apply_params, which
+        # perspective this should always be called through _apply_params, which
         # further updates ticklabel positions using the new pads.
         if tickdir is None:
             tickdir = mpl.rcParams[f'{self.__name__}.direction']
@@ -1941,7 +1941,6 @@ class Axis(martist.Artist):
     def _format_with_dict(tickd, x, pos):
         return tickd.get(x, "")
 
-    @_api.rename_parameter("3.7", "ticklabels", "labels")
     def set_ticklabels(self, labels, *, minor=False, fontdict=None, **kwargs):
         r"""
         [*Discouraged*] Set this Axis' tick labels with list of string labels.
