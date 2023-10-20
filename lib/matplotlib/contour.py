@@ -157,21 +157,19 @@ class ContourLabeler:
             A list of `.Text` instances for the labels.
         """
 
-        # clabel basically takes the input arguments and uses them to
-        # add a list of "label specific" attributes to the ContourSet
-        # object.  These attributes are all of the form label* and names
-        # should be fairly self explanatory.
+        # Based on the input arguments, clabel() adds a list of "label
+        # specific" attributes to the ContourSet object.  These attributes are
+        # all of the form label* and names should be fairly self explanatory.
         #
-        # Once these attributes are set, clabel passes control to the
-        # labels method (case of automatic label placement) or
-        # `BlockingContourLabeler` (case of manual label placement).
+        # Once these attributes are set, clabel passes control to the labels()
+        # method (for automatic label placement) or blocking_input_loop and
+        # _contour_labeler_event_handler (for manual label placement).
 
         if fmt is None:
             fmt = ticker.ScalarFormatter(useOffset=False)
             fmt.create_dummy_axis()
         self.labelFmt = fmt
         self._use_clabeltext = use_clabeltext
-        # Detect if manual selection is desired and remove from argument list.
         self.labelManual = manual
         self.rightside_up = rightside_up
         self._clabel_zorder = 2 + self.get_zorder() if zorder is None else zorder
@@ -930,9 +928,11 @@ class ContourSet(ContourLabeler, mcoll.Collection):
             )
 
     allsegs = _api.deprecated("3.8", pending=True)(property(lambda self: [
-        p.vertices for c in self.collections for p in c.get_paths()]))
+        [subp.vertices for subp in p._iter_connected_components()]
+        for p in self.get_paths()]))
     allkinds = _api.deprecated("3.8", pending=True)(property(lambda self: [
-        p.codes for c in self.collections for p in c.get_paths()]))
+        [subp.codes for subp in p._iter_connected_components()]
+        for p in self.get_paths()]))
     tcolors = _api.deprecated("3.8")(property(lambda self: [
         (tuple(rgba),) for rgba in self.to_rgba(self.cvalues, self.alpha)]))
     tlinewidths = _api.deprecated("3.8")(property(lambda self: [
