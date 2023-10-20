@@ -444,16 +444,16 @@ class VectorMappable:
         self.pause_signals = False
 
         self.callbacks = cbook.CallbackRegistry(signals=["changed"])
-        if isinstance(cmap, colors.MultivarColormap):
-            self.scalars = [ScalarMappable(n, c) for n, c in zip(norm, cmap)]
-            for sca in self.scalars:
+        if isinstance(cmap, colors.MultivarColormap) or \
+           isinstance(cmap, colors.BivarColormap):
+            if isinstance(cmap, colors.MultivarColormap):
+                self.scalars = [ScalarMappable(n, c) for n, c in zip(norm, cmap)]
+            else:
+                self.scalars = [ScalarMappable(n) for n in norm]
+            for i, sca in enumerate(self.scalars):
                 sca.callbacks.connect('changed', self.on_changed)
             self._cmap = cmap
-        elif isinstance(cmap, colors.BivarColormap):
-            self.scalars = [ScalarMappable(n) for n in norm]
-            for sca in self.scalars:
-                sca.callbacks.connect('changed', self.on_changed)
-            self._cmap = cmap
+            self._multivar_A = None
         else:
             # i.e type(cmap) is Str
             # or issubclass(type(cmap), colors.Colorbar)
@@ -470,15 +470,50 @@ class VectorMappable:
         if len(self.scalars) == 1:
             return self.scalars[0]._A
         else:
-            return np.array([s._A for s in self.scalars])
+            # _A on the scalars should be views of the same array
+            # or None
+            # If they views of the same array –> ok, return it
+            # else if they are all None, None
+            # else, raise error
+            if any([s is None for s in self.scalars]):
+                if all([s is None for s in self.scalars]):
+                    return None
+                else:
+                    raise AttributeError(
+                        "Attempting to get _A on a VectorMappable but _A on"
+                        " the ScalarMappables are not views of the same base"
+                        " array (at least one is None)."
+                        " Most likely sm.set_array(A) or sm._A = A has been"
+                        " called, which is not supported when the"
+                        " ScalarMappable belongs to a VectorMappable."
+                    )
+            if self._multivar_A is None:
+                raise AttributeError(
+                    "Attempting to get _A on a VectorMappable but _A on"
+                    " has only been indedependently set on"
+                    " ScalarMappables, which is unsupported."
+                    " Please use VectorMappable.set_array(A) instead."
+                )
+
+            if all([np.shares_memory(s._A, self._multivar_A) for s in self.scalars]):
+                return self._multivar_A
+            raise AttributeError(
+                "Attempting to get _A on a VectorMappable but _A on"
+                " the ScalarMappables are not views of _multivar_A"
+                " on the VectorMappable."
+                " Most likely sm.set_array(A) or sm._A = A has been"
+                " called, which is not supported when the"
+                " ScalarMappable belongs to a VectorMappable."
+            )
 
     @_A.setter
     def _A(self, A):
         if len(self.scalars) == 1:
             self.scalars[0]._A = A
         else:
-            for i, s in enumerate(self.scalars):
-                s._A = A[i]
+            self._multivar_A = A
+            for s, a in zip(self.scalars, A):
+                s._A = a
 
     @property
     def cmap(self):
@@ -569,8 +604,12 @@ class VectorMappable:
         """
         if len(self.scalars) == 1:
             return self.scalars[0].set_array(A)
-        for s, a in zip(self.scalars, A):
-            s.set_array(a)
+
+        A = cbook.safe_masked_invalid(A, copy=True)
+        if not np.can_cast(A.dtype, float, "same_kind"):
+            raise TypeError(f"Image data of dtype {A.dtype} cannot be "
+                            "converted to float")
+        self._A = A
 
     def get_array(self):
         """

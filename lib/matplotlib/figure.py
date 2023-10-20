@@ -48,6 +48,8 @@ import matplotlib.colorbar as cbar
 import matplotlib.image as mimage
 
 from matplotlib.axes import Axes
+from matplotlib.axes._base import ensure_cmap, ensure_multivariate_norm
+
 from matplotlib.gridspec import GridSpec, SubplotParams
 from matplotlib.layout_engine import (
     ConstrainedLayoutEngine, TightLayoutEngine, LayoutEngine,
@@ -2973,6 +2975,7 @@ None}, default: None
 
             - (M, N): an image with scalar data.  Color-mapping is controlled
               by *cmap*, *norm*, *vmin*, and *vmax*.
+            - (v, M, N): if coupled with a cmap that supports v scalars
             - (M, N, 3): an image with RGB values (0-1 float or 0-255 int).
             - (M, N, 4): an image with RGBA values (0-1 float or 0-255 int),
               i.e. including transparency.
@@ -3033,6 +3036,11 @@ None}, default: None
             dpi = self.get_dpi()
             figsize = [x / dpi for x in (X.shape[1], X.shape[0])]
             self.set_size_inches(figsize, forward=True)
+
+        cmap = ensure_cmap(cmap)
+        if cmap.n_variates > 1:
+            norm, vmin, vmax = ensure_multivariate_norm(cmap.n_variates, X,
+                                                        norm, vmin, vmax)
 
         im = mimage.FigureImage(self, cmap=cmap, norm=norm,
                                 offsetx=xo, offsety=yo,

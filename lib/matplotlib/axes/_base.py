@@ -259,8 +259,8 @@ def ensure_cmap(cmap):
 def ensure_multivariate_norm(n_variates, data, norm, vmin, vmax):
     """
     Ensure that the data, norm, cmap, vmin and vmax have the correct number of elements.
-    A single argument for norm, vmin or vmax will be repeated n times in the
-    output.
+    If n_variates > 1: A single argument for norm, vmin or vmax will be repeated n
+    times in the output.
 
     Parameters
     ----------
@@ -273,38 +273,41 @@ def ensure_multivariate_norm(n_variates, data, norm, vmin, vmax):
 
     Returns
     -------
-        norm, vmin, vmax
-        each a lists of length n_variates
+        if n_variates == 1:
+            norm, vmin, vmax
+            returned unchanged
+        if n_variates > 1:
+            norm, vmin, vmax
+            each a lists of length n_variates
     """
 
-    n = n_variates
-    if len(data[0].shape) != 2 or len(data) != n:
+    if len(data) != n_variates:
         raise ValueError(
-            f'For the selected colormap the data must be '
-            f'{n}x{data[0].shape}, not {len(data)}x{data[0].shape}')
+            f'For the selected colormap the data must have a first dimension '
+            f'{n_variates}, not {len(data)}')
 
     if isinstance(norm, str) or not np.iterable(norm):
-        norm = [norm for i in range(n)]
+        norm = [norm for i in range(n_variates)]
     else:
-        if len(norm) != n:
+        if len(norm) != n_variates:
             raise ValueError(
-                f'Unable to map the input for norm ({norm}) to {n} '
+                f'Unable to map the input for norm ({norm}) to {n_variates} '
                 f'variables.')
 
     if not np.iterable(vmin):
-        vmin = [vmin for i in range(n)]
+        vmin = [vmin for i in range(n_variates)]
     else:
-        if len(vmin) != n:
+        if len(vmin) != n_variates:
             raise ValueError(
-                f'Unable to map the input for vmin ({vmin}) to {n} '
+                f'Unable to map the input for vmin ({vmin}) to {n_variates} '
                 f'variables.')
 
     if not np.iterable(vmax):
-        vmax = [vmax for i in range(n)]
+        vmax = [vmax for i in range(n_variates)]
     else:
-        if len(vmax) != n:
+        if len(vmax) != n_variates:
             raise ValueError(
-                f'Unable to map the input for vmax ({vmax}) to {n} '
+                f'Unable to map the input for vmax ({vmax}) to {n_variates} '
                 f'variables.')
         vmax = vmax
 

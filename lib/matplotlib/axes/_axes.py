@@ -5576,6 +5576,7 @@ default: :rc:`scatter.edgecolors`
             - (M, N): an image with scalar data. The values are mapped to
               colors using normalization and a colormap. See parameters *norm*,
               *cmap*, *vmin*, *vmax*.
+            - (v, M, N): if coupled with a cmap that supports v scalars
             - (M, N, 3): an image with RGB values (0-1 float or 0-255 int).
             - (M, N, 4): an image with RGBA values (0-1 float or 0-255 int),
               i.e. including transparency.
@@ -5750,6 +5751,11 @@ default: :rc:`scatter.edgecolors`
         `~matplotlib.pyplot.imshow` expects RGB images adopting the straight
         (unassociated) alpha representation.
         """
+        cmap = ensure_cmap(cmap)
+        if cmap.n_variates > 1:
+            norm, vmin, vmax = ensure_multivariate_norm(cmap.n_variates, X,
+                                                        norm, vmin, vmax)
+
         im = mimage.AxesImage(self, cmap=cmap, norm=norm,
                               interpolation=interpolation, origin=origin,
                               extent=extent, filternorm=filternorm,
@@ -6313,8 +6319,8 @@ default: :rc:`scatter.edgecolors`
                                             n_variates=n_variates, kwargs=kwargs)
 
         if n_variates > 1:
-            norm, vmin, vmax = ensure_multivariate_norm(n_variates, C, norm,
-                                                        vmin, vmax)
+            norm, vmin, vmax = ensure_multivariate_norm(n_variates, X,
+                                                        norm, vmin, vmax)
 
         coords = np.stack([X, Y], axis=-1)
 

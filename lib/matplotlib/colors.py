@@ -979,6 +979,9 @@ class MultivarColormap:
         if not np.iterable(colormaps) or not issubclass(type(colormaps[0]), Colormap):
             raise ValueError("colormaps must be a list of objects that subclass"
                              "Colormap, not strings or list of strings")
+
+        if len(colormaps) == 1:
+            raise ValueError("A MultivarColormap must have more than one colormap.")
         self.colormaps = colormaps
 
         if combination_mode not in ['Add', 'Sub']:
