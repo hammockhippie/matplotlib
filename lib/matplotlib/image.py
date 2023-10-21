@@ -604,7 +604,7 @@ class _ImageBase(martist.Artist, cm.VectorMappable):
             # output is now a correctly sized RGBA array of uint8
 
             # Apply alpha *after* if the input was mapped to color without a mask
-            if self.n_variates > 0:
+            if self.n_variates > 0 and self._interpolation_stage != 'rgba':
                 alpha = self._get_scalar_alpha()
                 alpha_channel = output[:, :, 3]
                 alpha_channel[:] = (  # Assignment will cast to uint8.
@@ -737,6 +737,8 @@ class _ImageBase(martist.Artist, cm.VectorMappable):
                     " got {A.shape}."
                     )
             n_variates = cmap.n_variates
+        elif not (A.ndim == 2 or A.ndim == 3 and A.shape[-1] in [3, 4]):
+            raise TypeError(f"Invalid shape {A.shape} for image data")
         elif A.ndim == 3:
             # If the input data has values outside the valid range (after
             # normalisation), we issue a warning and then clip X to the bounds

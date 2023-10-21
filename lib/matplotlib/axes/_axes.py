@@ -6319,7 +6319,7 @@ default: :rc:`scatter.edgecolors`
                                             n_variates=n_variates, kwargs=kwargs)
 
         if n_variates > 1:
-            norm, vmin, vmax = ensure_multivariate_norm(n_variates, X,
+            norm, vmin, vmax = ensure_multivariate_norm(n_variates, C,
                                                         norm, vmin, vmax)
 
         coords = np.stack([X, Y], axis=-1)
