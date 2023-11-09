@@ -34,5 +34,5 @@ plt.show()
 
 # %%
 #
-# .. tags:: component: animation, plot type: scatter, 
+# .. tags:: component: animation, plot type: scatter,
 # .. tags:: purpose: reference, level: intermediate
