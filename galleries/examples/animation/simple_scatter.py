@@ -31,3 +31,7 @@ ani = animation.FuncAnimation(fig, animate, repeat=True,
 # ani.save('scatter.gif', writer=writer)
 
 plt.show()
+
+# %%
+#
+# .. tags:: component: animation, component: scatter, purpose: reference, level: intermediate
