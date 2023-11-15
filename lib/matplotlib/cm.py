@@ -580,10 +580,15 @@ class VectorMappable:
             rgba = self.scalars[0].to_rgba(arr, alpha=alpha, bytes=bytes, norm=norm)
 
         elif isinstance(self._cmap, colors.BivarColormap):
-            normed_0 = self.scalars[0].norm(arr[0])
-            normed_1 = self.scalars[1].norm(arr[1])
+            if norm:
+                normed_0 = self.scalars[0].norm(arr[0])
+                normed_1 = self.scalars[1].norm(arr[1])
+            else:
+                normed_0 = np.copy(arr[0])
+                normed_1 = np.copy(arr[1])
+            # clip in-place to shape of colormap: square or circle.
             self._cmap.clip(normed_0, normed_1)
-            rgba = self.cmap((normed_0, normed_1))
+            rgba = self.cmap((normed_0, normed_1), alpha=alpha, bytes=bytes)
 
         else:  # i.e. isinstance(self._cmaps, colors.MultivarColormap)
             rgba = self.scalars[0].to_rgba(arr[0], alpha=alpha, bytes=bytes, norm=norm)

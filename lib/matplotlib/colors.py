@@ -1498,7 +1498,7 @@ class BivarColormap:
         """
         For use when displaying a BivarColormap.
         i.e. cm.VectorMappable().to_rgba()
-        Clips x0 and x1 according to the 'shape'.
+        Clips x0 and x1 according to 'self.shape'.
         x0 and x1 are modified in-place.
 
         Parameters
@@ -1508,7 +1508,8 @@ class BivarColormap:
         shape: str 'square' or 'circle' or 'ignore' or 'circleignore'
             If 'square' each variate is clipped to [0,1] independently
             If 'circle' the variates are clipped radially to the center
-                of the colormap, and a circular mask is applied when the colormap
+                of the colormap.
+                It is assumed that a circular mask is applied when the colormap
                 is displayed
             If 'ignore' the variates are not clipped, but instead assigned the
                 'outside' color
@@ -1535,7 +1536,10 @@ class BivarColormap:
             x1[mask_outside] = -1
 
         elif self.shape == 'ignore':
-            ...  # do nothing
+            x0[x0 < 0] = -1
+            x0[x0 > 1] = -1
+            x1[x1 < 0] = -1
+            x1[x1 > 1] = -1
 
     def _repr_png_(self):
         """Generate a PNG representation of the BivarColormap."""
