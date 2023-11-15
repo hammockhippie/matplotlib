@@ -1692,21 +1692,19 @@ class Normalize:
             provided, they default to the minimum and maximum values of the input,
             respectively.
 
-
         clip : bool, default: False
             Determines the behavior for mapping values outside the range
             ``[vmin, vmax]``.
 
-            If *clip* is ``False``, values outside ``[vmin, vmax]`` are also transformed
-            linearly, leading to results outside ``[0, 1]``. For a standard use with
-            colormaps, this behavior is desired because colormaps mark these outside
-            values with specific colors for over or under.
+            If clipping is off, values outside the range ``[vmin, vmax]`` are
+            also transformed, resulting in values outside ``[0, 1]``.  This
+            behavior is usually desirable, as colormaps can mark these *under*
+            and *over* values with specific colors.
 
-            If *clip* is ``True``, values outside ``[vmin, vmax]`` are set to 0 or 1,
-            depending on which boundary they're closer to. This makes these values
-            indistinguishable from regular boundary values and can lead to
-            misinterpretation of the data.
-
+            If clipping is on, values below *vmin* are mapped to 0 and values
+            above *vmax* are mapped to 1. Such values become indistinguishable
+            from regular boundary values, which may cause misinterpretation of
+            the data.
 
         Notes
         -----
@@ -2014,15 +2012,15 @@ class CenteredNorm(Normalize):
             Determines the behavior for mapping values outside the range
             ``[vmin, vmax]``.
 
-            If clipping is off, values outside the range ``[vmin, vmax]`` are also
-            transformed, resulting in values outside ``[0, 1]``. For a
-            standard use with colormaps, this behavior is desired because colormaps
-            mark these outside values with specific colors for *over* or *under*.
+            If clipping is off, values outside the range ``[vmin, vmax]`` are
+            also transformed, resulting in values outside ``[0, 1]``.  This
+            behavior is usually desirable, as colormaps can mark these *under*
+            and *over* values with specific colors.
 
-            If ``True`` values falling outside the range ``[vmin, vmax]``,
-            are mapped to 0 or 1, whichever is closer. This makes these values
-            indistinguishable from regular boundary values and can lead to
-            misinterpretation of the data.
+            If clipping is on, values below *vmin* are mapped to 0 and values
+            above *vmax* are mapped to 1. Such values become indistinguishable
+            from regular boundary values, which may cause misinterpretation of
+            the data.
 
         Examples
         --------
@@ -2299,14 +2297,13 @@ class FuncNorm(Normalize):
         ``[vmin, vmax]``.
 
         If clipping is off, values outside the range ``[vmin, vmax]`` are also
-        transformed by the function, resulting in values outside ``[0, 1]``. For a
-        standard use with colormaps, this behavior is desired because colormaps
-        mark these outside values with specific colors for *over* or *under*.
+        transformed by the function, resulting in values outside ``[0, 1]``.
+        This behavior is usually desirable, as colormaps can mark these *under*
+        and *over* values with specific colors.
 
-        If ``True`` values falling outside the range ``[vmin, vmax]``,
-        are mapped to 0 or 1, whichever is closer. This makes these values
-        indistinguishable from regular boundary values and can lead to
-        misinterpretation of the data.
+        If clipping is on, values below *vmin* are mapped to 0 and values above
+        *vmax* are mapped to 1. Such values become indistinguishable from
+        regular boundary values, which may cause misinterpretation of the data.
     """
 
 
@@ -2404,14 +2401,13 @@ class PowerNorm(Normalize):
         ``[vmin, vmax]``.
 
         If clipping is off, values outside the range ``[vmin, vmax]`` are also
-        transformed by the power function, resulting in values outside ``[0, 1]``. For
-        a standard use with colormaps, this behavior is desired because colormaps
-        mark these outside values with specific colors for *over* or *under*.
+        transformed by the power function, resulting in values outside ``[0, 1]``.
+        This behavior is usually desirable, as colormaps can mark these *under*
+        and *over* values with specific colors.
 
-        If ``True`` values falling outside the range ``[vmin, vmax]``,
-        are mapped to 0 or 1, whichever is closer. This makes these values
-        indistinguishable from regular boundary values and can lead to
-        misinterpretation of the data.
+        If clipping is on, values below *vmin* are mapped to 0 and values above
+        *vmax* are mapped to 1. Such values become indistinguishable from
+        regular boundary values, which may cause misinterpretation of the data.
 
     Notes
     -----
@@ -3204,8 +3200,8 @@ def from_levels_and_colors(levels, colors, extend='neither'):
 
     Returns
     -------
-    cmap : `~matplotlib.colors.Normalize`
-    norm : `~matplotlib.colors.Colormap`
+    cmap : `~matplotlib.colors.Colormap`
+    norm : `~matplotlib.colors.Normalize`
     """
     slice_map = {
         'both': slice(1, -1),

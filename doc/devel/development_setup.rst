@@ -25,11 +25,12 @@ Fork the Matplotlib repository
 ==============================
 
 Matplotlib is hosted at https://github.com/matplotlib/matplotlib.git. If you
-plan on solving issues or submit pull requests to the main Matplotlib
+plan on solving issues or submitting pull requests to the main Matplotlib
 repository, you should first *fork* this repository by visiting
 https://github.com/matplotlib/matplotlib.git and clicking on the
-``Fork`` button on the top right of the page (see
-`the GitHub documentation <https://docs.github.com/get-started/quickstart/fork-a-repo>`__ for more details.)
+``Fork`` :octicon:`repo-forked` button on the top right of the page. See
+`the GitHub documentation <https://docs.github.com/get-started/quickstart/fork-a-repo>`__
+for more details.
 
 Retrieve the latest version of the code
 =======================================
@@ -131,9 +132,13 @@ The simplest way to do this is to use either Python's virtual environment
       On some systems, you may need to type ``python3`` instead of ``python``.
       For a discussion of the technical reasons, see `PEP-394 <https://peps.python.org/pep-0394>`_.
 
+      Install the Python dependencies with ::
+
+        pip install -r requirements/dev/dev-requirements.txt
+
    .. tab-item:: conda environment
 
-      Create a new `conda`_ environment with ::
+      Create a new `conda`_ environment and install the Python dependencies with ::
 
         conda env create -f environment.yml
 
@@ -173,6 +178,11 @@ When working on a branch that does not have Meson enabled, meaning it does not
 have :ghpull:`26621` in its history (log), you will have to reinstall from source
 each time you change any compiled extension code.
 
+If the installation is not working, please consult the :ref:`troubleshooting guide <troubleshooting-faq>`.
+If the guide does not offer a solution, please reach out via `chat <https://gitter.im/matplotlib/matplotlib>`_
+or :ref:`open an issue <submitting-a-bug-report>`.
+
+
 Build options
 -------------
 If you are working heavily with files that need to be compiled, you may want to
@@ -184,7 +194,6 @@ config during installation ::
 
 For more information on installation and other configuration options, see the
 Meson Python :external+meson-python:ref:`editable installs guide <how-to-guides-editable-installs>`.
-
 
 Verify the Installation
 =======================
@@ -202,6 +211,8 @@ you are aware of the existing issues beforehand.
 
 * Run test cases to verify installation :ref:`testing`
 * Verify documentation build :ref:`documenting-matplotlib`
+
+.. _pre-commit-hooks:
 
 Install pre-commit hooks
 ========================
