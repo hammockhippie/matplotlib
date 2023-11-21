@@ -6059,8 +6059,17 @@ default: :rc:`scatter.edgecolors`
         if shading is None:
             shading = mpl.rcParams['pcolor.shading']
         shading = shading.lower()
+
+        cmap = ensure_cmap(cmap)
+        n_variates = cmap.n_variates
+
         X, Y, C, shading = self._pcolorargs('pcolor', *args, shading=shading,
-                                            kwargs=kwargs)
+                                            n_variates=n_variates, kwargs=kwargs)
+
+        if n_variates > 1:
+            norm, vmin, vmax = ensure_multivariate_norm(n_variates, C,
+                                                        norm, vmin, vmax)
+
         linewidths = (0.25,)
         if 'linewidth' in kwargs:
             kwargs['linewidths'] = kwargs.pop('linewidth')
