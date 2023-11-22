@@ -721,7 +721,7 @@ class VectorMappable:
         """
         vmin, vmax = ensure_multivariate_clim(len(self.scalars), vmin, vmax)
         if len(self.scalars) == 1:
-            self.scalars[0].set_clim(self.n_variates, vmin=vmin, vmax=vmax)
+            self.scalars[0].set_clim(vmin=vmin, vmax=vmax)
         else:
             for s, vm, vx in zip(self.scalars, vmin, vmax):
                 s.set_clim(vmin=vm, vmax=vx)
