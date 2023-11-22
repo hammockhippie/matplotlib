@@ -32,9 +32,8 @@ import matplotlib.tri as mtri
 import matplotlib.units as munits
 from matplotlib import _api, _docstring, _preprocess_data
 from matplotlib.axes._base import (
-    _AxesBase, _TransformedBoundsLocator, _process_plot_format,
-    ensure_multivariate_norm)
-from matplotlib.cm import ensure_cmap
+    _AxesBase, _TransformedBoundsLocator, _process_plot_format)
+from matplotlib.cm import ensure_cmap, ensure_multivariate_params
 from matplotlib.axes._secondary_axes import SecondaryAxis
 from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
 
@@ -5758,8 +5757,8 @@ default: :rc:`scatter.edgecolors`
         """
         cmap = ensure_cmap(cmap)
         if cmap.n_variates > 1:
-            norm, vmin, vmax = ensure_multivariate_norm(cmap.n_variates, X,
-                                                        norm, vmin, vmax)
+            norm, vmin, vmax = ensure_multivariate_params(cmap.n_variates, X,
+                                                          norm, vmin, vmax)
 
         im = mimage.AxesImage(self, cmap=cmap, norm=norm,
                               interpolation=interpolation, origin=origin,
@@ -6068,8 +6067,8 @@ default: :rc:`scatter.edgecolors`
                                             n_variates=n_variates, kwargs=kwargs)
 
         if n_variates > 1:
-            norm, vmin, vmax = ensure_multivariate_norm(n_variates, C,
-                                                        norm, vmin, vmax)
+            norm, vmin, vmax = ensure_multivariate_params(n_variates, C,
+                                                          norm, vmin, vmax)
 
         linewidths = (0.25,)
         if 'linewidth' in kwargs:
@@ -6333,8 +6332,8 @@ default: :rc:`scatter.edgecolors`
                                             n_variates=n_variates, kwargs=kwargs)
 
         if n_variates > 1:
-            norm, vmin, vmax = ensure_multivariate_norm(n_variates, C,
-                                                        norm, vmin, vmax)
+            norm, vmin, vmax = ensure_multivariate_params(n_variates, C,
+                                                          norm, vmin, vmax)
 
         coords = np.stack([X, Y], axis=-1)
 
