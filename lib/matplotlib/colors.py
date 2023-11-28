@@ -1316,7 +1316,7 @@ class MultivarColormap:
             if alpha.shape not in [(), np.array(X[0]).shape]:
                 raise ValueError(
                     f"alpha is array-like but its shape {alpha.shape} does "
-                    f"not match that of the input {np.array(X[0]).shape}")
+                    f"not match that of X[0] {np.array(X[0]).shape}")
             rgba[..., -1] *= alpha
 
         if bytes:
@@ -1338,6 +1338,20 @@ class MultivarColormap:
         cmapobject.colormaps = [cm.copy() for cm in self.colormaps]
         cmapobject._rgba_bad = np.copy(self._rgba_bad)
         return cmapobject
+
+    def __eq__(self, other):
+        if not isinstance(other, MultivarColormap):
+            return False
+        if not len(self) == len(other):
+            return False
+        for c0, c1 in zip(self, other):
+            if not c0 == c1:
+                return False
+        if not all(self._rgba_bad == other._rgba_bad):
+            return False
+        if not self.combination_mode == other.combination_mode:
+            return False
+        return True
 
     def __getitem__(self, item):
         try:
@@ -1445,6 +1459,12 @@ class BivarColormap:
         Tuple of RGBA values if X is scalar, otherwise an array of
         RGBA values with a shape of ``X.shape + (4, )``.
         """
+
+        if len(X) != 2:
+            raise ValueError(
+                f'For a `BivarColormap` the data must have a first dimension '
+                f'{2}, not {len(X)}')
+
         if not self._isinit:
             self._init()
 
@@ -1499,7 +1519,7 @@ class BivarColormap:
             if alpha.shape not in [(), np.array(xa[0]).shape]:
                 raise ValueError(
                     f"alpha is array-like but its shape {alpha.shape} does "
-                    f"not match that of X {np.array(xa[0]).shape}")
+                    f"not match that of X[0] {np.array(xa[0]).shape}")
             rgba[..., -1] = alpha
             # If the "bad" color is all zeros, then ignore alpha input.
             if (np.array(self._rgba_bad) == 0).all():
