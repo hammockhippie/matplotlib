@@ -33,6 +33,7 @@ import matplotlib.units as munits
 from matplotlib import _api, _docstring, _preprocess_data
 from matplotlib.axes._base import (
     _AxesBase, _TransformedBoundsLocator, _process_plot_format)
+from matplotlib.cm import ensure_cmap, ensure_multivariate_params
 from matplotlib.axes._secondary_axes import SecondaryAxis
 from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
 
@@ -5591,6 +5592,7 @@ default: :rc:`scatter.edgecolors`
             - (M, N): an image with scalar data. The values are mapped to
               colors using normalization and a colormap. See parameters *norm*,
               *cmap*, *vmin*, *vmax*.
+            - (v, M, N): if coupled with a cmap that supports v scalars
             - (M, N, 3): an image with RGB values (0-1 float or 0-255 int).
             - (M, N, 4): an image with RGBA values (0-1 float or 0-255 int),
               i.e. including transparency.
@@ -5765,6 +5767,11 @@ default: :rc:`scatter.edgecolors`
         `~matplotlib.pyplot.imshow` expects RGB images adopting the straight
         (unassociated) alpha representation.
         """
+        cmap = ensure_cmap(cmap)
+        if cmap.n_variates > 1:
+            norm, vmin, vmax = ensure_multivariate_params(cmap.n_variates, X,
+                                                          norm, vmin, vmax)
+
         im = mimage.AxesImage(self, cmap=cmap, norm=norm,
                               interpolation=interpolation, origin=origin,
                               extent=extent, filternorm=filternorm,
@@ -5794,7 +5801,8 @@ default: :rc:`scatter.edgecolors`
         self.add_image(im)
         return im
 
-    def _pcolorargs(self, funcname, *args, shading='auto', **kwargs):
+    def _pcolorargs(self, funcname, *args, n_variates=1,
+                    shading='auto', **kwargs):
         # - create X and Y if not present;
         # - reshape X and Y as needed if they are 1-D;
         # - check for proper sizes based on `shading` kwarg;
@@ -5812,7 +5820,11 @@ default: :rc:`scatter.edgecolors`
 
         if len(args) == 1:
             C = np.asanyarray(args[0])
-            nrows, ncols = C.shape[:2]
+            if n_variates == 1:
+                nrows, ncols = C.shape[:2]
+            else:
+                nrows, ncols = C.shape[1:3]
+
             if shading in ['gouraud', 'nearest']:
                 X, Y = np.meshgrid(np.arange(ncols), np.arange(nrows))
             else:
@@ -5835,7 +5847,10 @@ default: :rc:`scatter.edgecolors`
                         'x and y arguments to pcolormesh cannot have '
                         'non-finite values or be of type '
                         'numpy.ma.MaskedArray with masked values')
-            nrows, ncols = C.shape[:2]
+            if n_variates == 1:
+                nrows, ncols = C.shape[:2]
+            else:
+                nrows, ncols = C.shape[1:3]
         else:
             raise _api.nargs_error(funcname, takes="1 or 3", given=len(args))
 
@@ -6056,8 +6071,17 @@ default: :rc:`scatter.edgecolors`
         if shading is None:
             shading = mpl.rcParams['pcolor.shading']
         shading = shading.lower()
+
+        cmap = ensure_cmap(cmap)
+        n_variates = cmap.n_variates
+
         X, Y, C, shading = self._pcolorargs('pcolor', *args, shading=shading,
-                                            kwargs=kwargs)
+                                            n_variates=n_variates, kwargs=kwargs)
+
+        if n_variates > 1:
+            norm, vmin, vmax = ensure_multivariate_params(n_variates, C,
+                                                          norm, vmin, vmax)
+
         linewidths = (0.25,)
         if 'linewidth' in kwargs:
             kwargs['linewidths'] = kwargs.pop('linewidth')
@@ -6149,6 +6173,7 @@ default: :rc:`scatter.edgecolors`
             - (M, N) or M*N: a mesh with scalar data. The values are mapped to
               colors using normalization and a colormap. See parameters *norm*,
               *cmap*, *vmin*, *vmax*.
+            - (v, M, N): if coupled with a cmap that supports v scalars
             - (M, N, 3): an image with RGB values (0-1 float or 0-255 int).
             - (M, N, 4): an image with RGBA values (0-1 float or 0-255 int),
               i.e. including transparency.
@@ -6312,8 +6337,16 @@ default: :rc:`scatter.edgecolors`
         shading = shading.lower()
         kwargs.setdefault('edgecolors', 'none')
 
-        X, Y, C, shading = self._pcolorargs('pcolormesh', *args,
-                                            shading=shading, kwargs=kwargs)
+        cmap = ensure_cmap(cmap)
+        n_variates = cmap.n_variates
+
+        X, Y, C, shading = self._pcolorargs('pcolormesh', *args, shading=shading,
+                                            n_variates=n_variates, kwargs=kwargs)
+
+        if n_variates > 1:
+            norm, vmin, vmax = ensure_multivariate_params(n_variates, C,
+                                                          norm, vmin, vmax)
+
         coords = np.stack([X, Y], axis=-1)
 
         kwargs.setdefault('snap', mpl.rcParams['pcolormesh.snap'])
