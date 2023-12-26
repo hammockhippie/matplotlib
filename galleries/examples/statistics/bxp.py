@@ -106,6 +106,8 @@ plt.show()
 
 # %%
 #
+# .. tags:: plot-type: speciality, domain: statistics
+#
 # .. admonition:: References
 #
 #    The use of the following functions, methods, classes and modules is shown
@@ -113,3 +115,7 @@ plt.show()
 #
 #    - `matplotlib.axes.Axes.bxp`
 #    - `matplotlib.cbook.boxplot_stats`
+#
+# .. ifconfig:: releaselevel == 'dev'
+#
+#    .. tags::  internal: too-much
