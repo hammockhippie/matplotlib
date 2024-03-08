@@ -74,10 +74,11 @@ extension_data = {
     'subdir': 'matplotlib/backends',
     'sources': files(
       'py_converters.cpp',
+      'py_converters_11.cpp',
       '_backend_agg.cpp',
       '_backend_agg_wrapper.cpp',
     ),
-    'dependencies': [agg_dep, numpy_dep, freetype_dep],
+    'dependencies': [agg_dep, numpy_dep, freetype_dep, pybind11_dep],
   },
   '_c_internal_utils': {
     'subdir': 'matplotlib',
@@ -118,9 +119,10 @@ extension_data = {
     'subdir': 'matplotlib',
     'sources': files(
       'py_converters.cpp',
+      'py_converters_11.cpp',
       '_path_wrapper.cpp',
     ),
-    'dependencies': [numpy_dep, agg_dep],
+    'dependencies': [numpy_dep, agg_dep, pybind11_dep],
   },
   '_qhull': {
     'subdir': 'matplotlib',
