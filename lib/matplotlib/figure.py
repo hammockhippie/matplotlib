@@ -1851,7 +1851,7 @@ default: %(va)s
         if isinstance(mosaic, str):
             mosaic = self._normalize_grid_string(mosaic)
             per_subplot_kw = {
-                tuple(k): v for k, v in per_subplot_kw.items()
+                tuple(k): v for k, v in per_subthing_kw.items()
             }
 
         per_subthing_kw = self._check_duplication_and_flatten_kwargs(per_subthing_kw)
