@@ -19,11 +19,20 @@ class _Base:
     def __rmul__(self, other):
         return Fraction(other, self)
 
+    def __mul__(self, other):
+        return Fraction(self, other)
+
+    def __div__(self, other):
+        return Fraction(self, 1/other)
+
     def __add__(self, other):
         if isinstance(other, _Base):
             return Add(self, other)
         else:
             return Add(self, Fixed(other))
+
+    def __radd__(self, other):
+        return Add(self, Fixed(other))
 
     def get_size(self, renderer):
         """
