@@ -34,6 +34,12 @@ class _Base:
     def __radd__(self, other):
         return Add(self, Fixed(other))
 
+    def __sub__(self, other):
+        if isinstance(other, _Base):
+            return Add(self, -other)
+        else:
+            return Add(self, Fixed(-other))
+
     def get_size(self, renderer):
         """
         Return two-float tuple with relative and absolute sizes.
