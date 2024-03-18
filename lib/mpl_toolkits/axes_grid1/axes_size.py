@@ -17,13 +17,22 @@ from matplotlib.axes import Axes
 
 class _Base:
     def __rmul__(self, other):
+        if not isinstance(other, Real):
+            raise TypeError("unsupported operand type(s) for *: "
+                            f"'{type(other).__name__}' and '{type(self).__name__}'")
         return Fraction(other, self)
 
     def __mul__(self, other):
-        return Fraction(self, other)
+        if not isinstance(other, Real):
+            raise TypeError("unsupported operand type(s) for *: "
+                            f"'{type(self).__name__}' and '{type(other).__name__}'")
+        return Fraction(other, self)
 
     def __div__(self, other):
-        return Fraction(self, 1/other)
+        if not isinstance(other, Real):
+            raise TypeError("unsupported operand type(s) for /: "
+                            f"'{type(self).__name__}' and '{type(other).__name__}'")
+        return Fraction(1/other, self)
 
     def __add__(self, other):
         if isinstance(other, _Base):
@@ -31,7 +40,12 @@ class _Base:
         else:
             return Add(self, Fixed(other))
 
+    def __neg__(self):
+        return -1  * self
+
     def __radd__(self, other):
+        # other cannot be a _Base instance, because A + B would trigger
+        # A.__add__(B) first.
         return Add(self, Fixed(other))
 
     def __sub__(self, other):
