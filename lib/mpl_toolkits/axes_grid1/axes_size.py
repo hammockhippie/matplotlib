@@ -7,6 +7,10 @@ meaning relative and absolute sizes, respectively.
 Note that this class is nothing more than a simple tuple of two
 floats. Take a look at the Divider class to see how these two
 values are used.
+
+Once created, the unit classes can be modified by simple arithmetic
+operations: addition /substraction with another unit type or a real number and scaling
+(multiplication or division) by a real number.
 """
 
 from numbers import Real
