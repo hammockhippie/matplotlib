@@ -7413,16 +7413,17 @@ def test_zoom_inset():
     axin1.set_aspect(ax.get_aspect())
 
     inset = ax.indicate_inset_zoom(axin1)
-    fig.draw_without_rendering()
-    assert len(inset.connectors) == 4
-    fig.canvas.draw()
-    xx = np.array([[1.5,  2.],
-                   [2.15, 2.5]])
-    assert np.all(inset.get_bbox().get_points() == xx)
-    xx = np.array([[0.6325, 0.692308],
-                   [0.8425, 0.907692]])
-    np.testing.assert_allclose(
-        axin1.get_position().get_points(), xx, rtol=1e-4)
+    for _ in range(2):
+        # Drawing twice should not affect result
+        fig.canvas.draw()
+        assert len(inset.connectors) == 4
+        xx = np.array([[1.5,  2.],
+                       [2.15, 2.5]])
+        assert np.all(inset.get_bbox().get_points() == xx)
+        xx = np.array([[0.6325, 0.692308],
+                       [0.8425, 0.907692]])
+        np.testing.assert_allclose(
+            axin1.get_position().get_points(), xx, rtol=1e-4)
 
 
 @image_comparison(['inset_polar.png'], remove_text=True, style='mpl20')
