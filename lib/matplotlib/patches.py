@@ -4699,20 +4699,36 @@ class ConnectionPatch(FancyArrowPatch):
 
 
 class IndicateInset(Rectangle):
-    def __init__(self, xy, width, height, inset_ax=None, **kwargs):
-        super().__init__(xy, width, height, **kwargs)
+    def __init__(self, bounds, inset_ax=None, **kwargs):
+        if bounds is None and inset_ax is None:
+            raise ValueError("At least one of bounds and inset_ax must be supplied")
+
         self._inset_ax = inset_ax
-        print(self._inset_ax)
+        self._auto_update_bounds = False
+        if bounds is None:
+            # Work out bounds from inset_ax
+            self._auto_update_bounds = True
+            bounds = self._bounds_from_inset_ax()
+        x, y, width, height = bounds
 
-        self.connectors = []
+        super().__init__((x, y), width, height, **kwargs)
 
-    def _create_connects(self):
+        # Connector positions cannot be calculated till the patch has been added
+        # to an axes, so just make an empty list for now.
+        self._connectors = []
+
+    def _bounds_from_inset_ax(self):
+        xlim = self._inset_ax.get_xlim()
+        ylim = self._inset_ax.get_ylim()
+        return (xlim[0], ylim[0], xlim[1] - xlim[0], ylim[1] - ylim[0])
+
+    def _update_connectors(self):
         if self._inset_ax is not None:
             (x, y) = self.get_xy()
             width = self.get_width()
             height = self.get_height()
 
-            existing_connectors = self.connectors or [None] * 4
+            existing_connectors = self._connectors or [None] * 4
 
             # connect the inset_axes to the rectangle
             for xy_inset_ax, existing in zip([(0, 0), (0, 1), (1, 0), (1, 1)],
@@ -4734,7 +4750,7 @@ class IndicateInset(Rectangle):
                         xyB=xy_data, coordsB=self.axes.transData,
                         arrowstyle="-", zorder=self.get_zorder(),
                         edgecolor=self.get_edgecolor(), alpha=self.get_alpha())
-                    self.connectors.append(p)
+                    self._connectors.append(p)
                 else:
                     # Only update positioning of existing connection patch.  We
                     # do not want to override any style settings made by the user.
@@ -4753,13 +4769,22 @@ class IndicateInset(Rectangle):
                 x1 = rectbbox.x1 < bboxins.x1
                 y0 = rectbbox.y0 < bboxins.y0
                 y1 = rectbbox.y1 < bboxins.y1
-                self.connectors[0].set_visible(x0 ^ y0)
-                self.connectors[1].set_visible(x0 == y1)
-                self.connectors[2].set_visible(x1 == y0)
-                self.connectors[3].set_visible(x1 ^ y1)
+                self._connectors[0].set_visible(x0 ^ y0)
+                self._connectors[1].set_visible(x0 == y1)
+                self._connectors[2].set_visible(x1 == y0)
+                self._connectors[3].set_visible(x1 ^ y1)
+
+    @property
+    def connectors(self):
+        if self._inset_ax is None:
+            return []
+
+        if self._auto_update_bounds:
+            self.set_bounds(self._bounds_from_inset_ax())
+        self._update_connectors()
+        return self._connectors
 
     def draw(self, renderer):
-        super().draw(renderer)
-        self._create_connects()
         for conn in self.connectors:
             conn.draw(renderer)
+        super().draw(renderer)

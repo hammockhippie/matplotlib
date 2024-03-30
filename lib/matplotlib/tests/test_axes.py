@@ -7426,6 +7426,28 @@ def test_zoom_inset():
             axin1.get_position().get_points(), xx, rtol=1e-4)
 
 
+@check_figures_equal(extensions=["png"])
+def test_zoom_inset_update_limits(fig_test, fig_ref):
+    # Updating the inset axes limits should also update the indicator #19768
+    ax_ref = fig_ref.add_subplot()
+    ax_test = fig_test.add_subplot()
+
+    for ax in ax_ref, ax_test:
+        ax.set_xlim([0, 5])
+        ax.set_ylim([0, 5])
+
+    inset_ref = ax_ref.inset_axes([0.6, 0.6, 0.3, 0.3])
+    inset_test = ax_test.inset_axes([0.6, 0.6, 0.3, 0.3])
+
+    inset_ref.set_xlim([1, 2])
+    inset_ref.set_ylim([3, 4])
+    ax_ref.indicate_inset_zoom(inset_ref)
+
+    ax_test.indicate_inset_zoom(inset_test)
+    inset_test.set_xlim([1, 2])
+    inset_test.set_ylim([3, 4])
+
+
 @image_comparison(['inset_polar.png'], remove_text=True, style='mpl20')
 def test_inset_polar():
     _, ax = plt.subplots()

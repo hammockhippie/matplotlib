@@ -432,9 +432,10 @@ class Axes(_AxesBase):
 
         Parameters
         ----------
-        bounds : [x0, y0, width, height]
+        bounds : [x0, y0, width, height] or None
             Lower-left corner of rectangle to be marked, and its width
-            and height.
+            and height.  If None, the bounds will be calculated from the limits
+            of inset_ax, which must be supplied.
 
         inset_ax : `.Axes`
             An optional inset Axes to draw connecting lines to.  Two lines are
@@ -483,9 +484,8 @@ class Axes(_AxesBase):
             transform = self.transData
         kwargs.setdefault('label', '_indicate_inset')
 
-        x, y, width, height = bounds
         indicator_patch = mpatches.IndicateInset(
-            (x, y), width, height, inset_ax=inset_ax,
+            bounds, inset_ax=inset_ax,
             facecolor=facecolor, edgecolor=edgecolor, alpha=alpha,
             zorder=zorder, transform=transform, **kwargs)
         self.add_patch(indicator_patch)
@@ -526,10 +526,7 @@ class Axes(_AxesBase):
             correct.
         """
 
-        xlim = inset_ax.get_xlim()
-        ylim = inset_ax.get_ylim()
-        rect = (xlim[0], ylim[0], xlim[1] - xlim[0], ylim[1] - ylim[0])
-        return self.indicate_inset(rect, inset_ax, **kwargs)
+        return self.indicate_inset(None, inset_ax, **kwargs)
 
     @_docstring.dedent_interpd
     def secondary_xaxis(self, location, functions=None, *, transform=None, **kwargs):
