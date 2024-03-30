@@ -4711,7 +4711,7 @@ class IndicateInset(Rectangle):
             bounds = self._bounds_from_inset_ax()
         x, y, width, height = bounds
 
-        super().__init__((x, y), width, height, **kwargs)
+        super().__init__((x, y), width, height, clip_on=False, **kwargs)
 
         # Connector positions cannot be calculated till the patch has been added
         # to an axes, so just make an empty list for now.
@@ -4749,7 +4749,8 @@ class IndicateInset(Rectangle):
                         xyA=xy_inset_ax, coordsA=self._inset_ax.transAxes,
                         xyB=xy_data, coordsB=self.axes.transData,
                         arrowstyle="-", zorder=self.get_zorder(),
-                        edgecolor=self.get_edgecolor(), alpha=self.get_alpha())
+                        edgecolor=self.get_edgecolor(), alpha=self.get_alpha(),
+                        linestyle=self.get_linestyle(), linewidth=self.get_linewidth())
                     self._connectors.append(p)
                 else:
                     # Only update positioning of existing connection patch.  We
@@ -4785,6 +4786,33 @@ class IndicateInset(Rectangle):
         return self._connectors
 
     def draw(self, renderer):
+        conn_same_style = []
+        style_properties = ['edgecolor', 'linestyle', 'linewidth', 'zorder']
+
         for conn in self.connectors:
-            conn.draw(renderer)
+            if conn.get_visible():
+                drawn = False
+                for s in style_properties:
+                    if artist.getp(self, s) != artist.getp(conn, s):
+                        # Draw this connector by itself
+                        conn.draw(renderer)
+                        drawn = True
+                        break
+
+                if not drawn:
+                    # Connector has same style as box.
+                    conn_same_style.append(conn)
+
+        if conn_same_style:
+            # Since at least one connector has the same style as the rectangle, draw
+            # them as a compound path.
+            affine = transforms.IdentityTransform()
+            paths = [conn._get_path_in_displaycoord()[0][0] for conn in conn_same_style]
+            paths.append(self.get_transform().transform_path(self.get_path()))
+            path = Path.make_compound_path(*paths)
+            self._draw_paths_with_artist_properties(renderer, [(path, affine, None)])
+
+            return
+
+        # Just draw the rectangle
         super().draw(renderer)

@@ -7463,6 +7463,22 @@ def test_zoom_inset_update_connector_style():
         assert mcolors.same_color(conn.get_edgecolor()[:3], 'blue')
 
 
+@image_comparison(['zoom_inset_connector_styles.png'], remove_text=True, style='mpl20')
+def test_zoom_inset_connector_styles():
+    fig, axs = plt.subplots(2)
+    for ax in axs:
+        ax.plot([1, 2, 3])
+
+    axs[1].set_xlim(0.5, 1.5)
+    indicator = axs[0].indicate_inset_zoom(axs[1], linewidth=5)
+    for conn in indicator.connectors:
+        if conn.get_visible():
+            # Make one visible connector a different style
+            conn.set_linestyle('dashed')
+            conn.set_color('blue')
+            break
+
+
 @image_comparison(['inset_polar.png'], remove_text=True, style='mpl20')
 def test_inset_polar():
     _, ax = plt.subplots()
