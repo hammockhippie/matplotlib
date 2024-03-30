@@ -7448,6 +7448,21 @@ def test_zoom_inset_update_limits(fig_test, fig_ref):
     inset_test.set_ylim([3, 4])
 
 
+def test_zoom_inset_update_connector_style():
+    # Check that we can set connector style properties independently of the main patch.
+    fig, ax = plt.subplots()
+    inset = ax.inset_axes([0.6, 0.6, 0.3, 0.3])
+    inset.set_xlim([0.2, 0.4])
+    inset.set_ylim([0.2, 0.4])
+    indicator = ax.indicate_inset_zoom(inset, edgecolor='red')
+    for conn in indicator.connectors:
+        conn.set_color('blue')
+
+    fig.draw_without_rendering()
+    for conn in indicator.connectors:
+        assert mcolors.same_color(conn.get_edgecolor()[:3], 'blue')
+
+
 @image_comparison(['inset_polar.png'], remove_text=True, style='mpl20')
 def test_inset_polar():
     _, ax = plt.subplots()
