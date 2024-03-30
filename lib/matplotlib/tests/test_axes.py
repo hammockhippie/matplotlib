@@ -7412,14 +7412,15 @@ def test_zoom_inset():
     axin1.set_ylim([2, 2.5])
     axin1.set_aspect(ax.get_aspect())
 
-    inset = ax.indicate_inset_zoom(axin1)
+    with pytest.warns(mpl.MatplotlibDeprecationWarning):
+        rec, connectors = ax.indicate_inset_zoom(axin1)
     for _ in range(2):
         # Drawing twice should not affect result
         fig.canvas.draw()
-        assert len(inset.connectors) == 4
+        assert len(connectors) == 4
         xx = np.array([[1.5,  2.],
                        [2.15, 2.5]])
-        assert np.all(inset.get_bbox().get_points() == xx)
+        assert np.all(rec.get_bbox().get_points() == xx)
         xx = np.array([[0.6325, 0.692308],
                        [0.8425, 0.907692]])
         np.testing.assert_allclose(
@@ -7520,7 +7521,6 @@ def test_indicate_inset_inverted(x_inverted, y_inverted):
         ax1.invert_yaxis()
 
     inset = ax1.indicate_inset([2, 2, 5, 4], ax2)
-    fig.draw_without_rendering()
     lower_left, upper_left, lower_right, upper_right = inset.connectors
 
     sign_x = -1 if x_inverted else 1
