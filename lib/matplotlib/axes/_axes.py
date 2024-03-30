@@ -480,6 +480,7 @@ class Axes(_AxesBase):
         # to make the Axes connectors work, we need to apply the aspect to
         # the parent Axes.
         self.apply_aspect()
+
         if transform is None:
             transform = self.transData
         kwargs.setdefault('label', '_indicate_inset')
