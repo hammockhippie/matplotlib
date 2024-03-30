@@ -9,7 +9,7 @@ from numbers import Number, Real
 import textwrap
 from types import SimpleNamespace
 from collections import namedtuple
-from matplotlib.transforms import Affine2D
+from matplotlib.transforms import Affine2D, Bbox
 
 import numpy as np
 
@@ -4696,3 +4696,55 @@ class ConnectionPatch(FancyArrowPatch):
         if not self.get_visible() or not self._check_xy(renderer):
             return
         super().draw(renderer)
+
+
+class IndicateInset(Rectangle):
+    def __init__(self, xy, width, height, inset_ax=None, **kwargs):
+        super().__init__(xy, width, height, **kwargs)
+        self._inset_ax = inset_ax
+        print(self._inset_ax)
+
+        self.connectors = []
+
+    def _create_connects(self):
+        if self._inset_ax is not None:
+            (x, y) = self.get_xy()
+            width = self.get_width()
+            height = self.get_height()
+            # connect the inset_axes to the rectangle
+            for xy_inset_ax in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+                # inset_ax positions are in axes coordinates
+                # The 0, 1 values define the four edges if the inset_ax
+                # lower_left, upper_left, lower_right upper_right.
+                ex, ey = xy_inset_ax
+                if self.axes.xaxis.get_inverted():
+                    ex = 1 - ex
+                if self.axes.yaxis.get_inverted():
+                    ey = 1 - ey
+                xy_data = x + ex * width, y + ey * height
+                p = ConnectionPatch(
+                    xyA=xy_inset_ax, coordsA=self._inset_ax.transAxes,
+                    xyB=xy_data, coordsB=self.axes.transData,
+                    arrowstyle="-", zorder=self.get_zorder(),
+                    edgecolor=self.get_edgecolor(), alpha=self.get_alpha())
+                self.connectors.append(p)
+
+            # decide which two of the lines to keep visible....
+            pos = self._inset_ax.get_position()
+            bboxins = pos.transformed(self.figure.transSubfigure)
+            rectbbox = Bbox.from_bounds(x, y, width, height).transformed(
+                self.get_transform())
+            x0 = rectbbox.x0 < bboxins.x0
+            x1 = rectbbox.x1 < bboxins.x1
+            y0 = rectbbox.y0 < bboxins.y0
+            y1 = rectbbox.y1 < bboxins.y1
+            self.connectors[0].set_visible(x0 ^ y0)
+            self.connectors[1].set_visible(x0 == y1)
+            self.connectors[2].set_visible(x1 == y0)
+            self.connectors[3].set_visible(x1 ^ y1)
+
+    def draw(self, renderer):
+        super().draw(renderer)
+        self._create_connects()
+        for conn in self.connectors:
+            conn.draw(renderer)
