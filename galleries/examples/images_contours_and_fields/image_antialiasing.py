@@ -80,7 +80,7 @@ axs[1].set_title('(4, 4) Up-sampled', fontsize='medium')
 # The following images are down-sampled from 450 data pixels to approximately
 # 125 pixels or 250 pixels (depending on your display).
 # The underlying image has alternating +1, -1 stripes on the left side, and
-# a varying wavenumber (`chirp <https://en.wikipedia.org/wiki/Chirp>`_) pattern
+# a varying wavelength (`chirp <https://en.wikipedia.org/wiki/Chirp>`_) pattern
 # in the rest of the image.  If we zoom, we can see this detail without any
 # down-sampling:
 
@@ -146,16 +146,16 @@ plt.show()
 
 fig, ax = plt.subplots(figsize=(6.8, 6.8))
 ax.imshow(alarge, interpolation='nearest', cmap='grey')
-ax.set_title("upsampled by factor a 1.17, interpolation='nearest'")
+ax.set_title("up-sampled by factor a 1.17, interpolation='nearest'")
 
 # %%
-# Better antialiasing algorithms can reduce this effect:
+# Better anti-aliasing algorithms can reduce this effect:
 fig, ax = plt.subplots(figsize=(6.8, 6.8))
 ax.imshow(alarge, interpolation='antialiased', cmap='grey')
-ax.set_title("upsampled by factor a 1.17, interpolation='antialiased'")
+ax.set_title("up-sampled by factor a 1.17, interpolation='antialiased'")
 
 # %%
-# Apart from the default 'hanning' antialiasing, `~.Axes.imshow` supports a
+# Apart from the default 'hanning' anti-aliasing, `~.Axes.imshow` supports a
 # number of different interpolation algorithms, which may work better or
 # worse depending on the underlying data.
 fig, axs = plt.subplots(1, 2, figsize=(7, 4), layout='constrained')
@@ -164,19 +164,18 @@ for ax, interp in zip(axs, ['hanning', 'lanczos']):
     ax.set_title(f"interpolation='{interp}'")
 
 # %%
-# A final example shows the desirability of performing the anti-aliasing at
-# the RGBA stage when using non-trivial interpolation kernels.  In the following,
-# the data in the upper 100 rows is exactly
-# 0.0, and data in the inner circle is exactly 2.0. If we perform the
-# *interpolation_stage* in 'data' space and use an anti-aliasing filter (first
-# panel), then floating point imprecision makes some of the data values just a
-# bit less than zero or a bit more than 2.0, and they get assigned the under-
-# or over- colors. This can be avoided if you do not use an anti-aliasing filter
-# (*interpolation* set set to 'nearest'), however, that makes the part of the
-# data susceptible to Moiré patterns much worse (second panel).  Therefore, we
-# recommend the default *interpolation* of 'hanning'/'antialiased', and
-# *interpolation_stage* of 'rgba'/'antialiased' for most down-sampling
-# situations (last panel).
+# A final example shows the desirability of performing the anti-aliasing at the
+# RGBA stage when using non-trivial interpolation kernels.  In the following,
+# the data in the upper 100 rows is exactly 0.0, and data in the inner circle
+# is exactly 2.0. If we perform the *interpolation_stage* in 'data' space and
+# use an anti-aliasing filter (first panel), then floating point imprecision
+# makes some of the data values just a bit less than zero or a bit more than
+# 2.0, and they get assigned the under- or over- colors. This can be avoided if
+# you do not use an anti-aliasing filter (*interpolation* set set to
+# 'nearest'), however, that makes the part of the data susceptible to Moiré
+# patterns much worse (second panel).  Therefore, we recommend the default
+# *interpolation* of 'hanning'/'antialiased', and *interpolation_stage* of
+# 'rgba'/'antialiased' for most down-sampling situations (last panel).
 
 a = alarge + 1
 cmap = plt.get_cmap('RdBu_r')
@@ -199,7 +198,7 @@ fig.colorbar(im, ax=axs, extend='both', shrink=0.8)
 # Up-sampling
 # ===========
 #
-# If we upsample, then we can represent a data pixel by many image or screen pixels.
+# If we up-sample, then we can represent a data pixel by many image or screen pixels.
 # In the following example, we greatly over-sample the small data matrix.
 
 np.random.seed(19680801+9)
@@ -239,12 +238,12 @@ fig.colorbar(im, ax=axs, shrink=0.7, extend='both')
 # aware that some vector image viewers may smooth image pixels.
 #
 # The second method is to exactly match the size of your axes to the size of
-# your data. in the following, the figure is exactly 2 inches by 2 inches, and
-# the dpi is 200, so the 400x400 data is not resampled at all. If you download
+# your data. In the following, the figure is exactly 2 inches by 2 inches, and
+# the dpi is 200, then the 400x400 data is not resampled at all. If you download
 # this image and zoom in an image viewer you should see the individual stripes
 # on the left hand side.
 
-fig = plt.figure(figsize=(2, 2))
+fig = plt.figure(figsize=(2, 2), dpi=200)
 ax = fig.add_axes([0, 0, 1, 1])
 ax.imshow(aa[:400, :400], cmap='RdBu_r', interpolation='nearest')
 plt.show()
