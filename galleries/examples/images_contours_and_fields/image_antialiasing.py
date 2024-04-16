@@ -8,9 +8,9 @@ screen or in an image file.  When a user calls `~.Axes.imshow` with a data
 array, it is rare that the size of the data array exactly matches the number of
 pixels allotted to the image in the figure, so Matplotlib resamples or `scales
 <https://en.wikipedia.org/wiki/Image_scaling>`_ the data or image to fit.  If
-the data array is larger than the number of pixels allotted in the image file,
+the data array is larger than the number of pixels allotted in the rendered figure,
 then the image will be "down-sampled" and image information will be lost.
-Conversely, if the data array is smaller than the number of pixels then each
+Conversely, if the data array is smaller than the number of output pixels then each
 data point will get multiple pixels, and the image is "up-sampled".
 
 In the following figure, the first data array has size (450, 450), but is
@@ -126,7 +126,7 @@ plt.show()
 # white regions to the image that are not in the original data, both in the
 # alternating bands on the left hand side of the image, and in the boundary
 # between the red and blue of the large circles in the middle of the image.
-# The interpolation at the 'rgba' stage is more natural, with the alternating
+# The interpolation at the 'rgba' stage has a different artifact, with the alternating
 # bands coming out a shade of purple; even though purple is not in the original
 # colormap, it is what we perceive when a blue and red stripe are close to each
 # other.
@@ -165,7 +165,8 @@ for ax, interp in zip(axs, ['hanning', 'lanczos']):
 
 # %%
 # A final example shows the desirability of performing the anti-aliasing at
-# the RGBA stage.  In the following, the data in the upper 100 rows is exactly
+# the RGBA stage when using non-trivial interpolation kernels.  In the following,
+# the data in the upper 100 rows is exactly
 # 0.0, and data in the inner circle is exactly 2.0. If we perform the
 # *interpolation_stage* in 'data' space and use an anti-aliasing filter (first
 # panel), then floating point imprecision makes some of the data values just a

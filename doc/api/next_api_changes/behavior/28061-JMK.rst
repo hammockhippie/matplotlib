@@ -2,8 +2,8 @@ imshow *interpolation_stage* default changed to 'antialiased'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The *interpolation_stage* keyword argument `~.Axes.imshow` has a new default
-value 'antialiased'.  For images that are down-sampled or up-sampled less than
-a factor of three, image interpolation will occur in 'rgba' space.  For images
+value 'antialiased'.  For images that are up-sampled less than a factor of 
+three or down-sampled , image interpolation will occur in 'rgba' space.  For images
 that are up-sampled by more than a factor of 3, then image interpolation occurs
 in 'data' space.
 
