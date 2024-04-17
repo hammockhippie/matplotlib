@@ -566,7 +566,7 @@ class _ImageBase(martist.Artist, cm.ScalarMappable):
                      cbook._setattr_cm(self.norm, vmin=s_vmin, vmax=s_vmax):
                     output = self.norm(resampled_masked)
             else:
-                if A.ndim == 2:  # interpolation_stage == 'rgba'
+                if A.ndim == 2:  # interpolation_stage = 'rgba'
                     self.norm.autoscale_None(A)
                     A = self.to_rgba(A)
                 alpha = self._get_scalar_alpha()
