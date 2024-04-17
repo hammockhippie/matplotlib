@@ -238,12 +238,13 @@ fig.colorbar(im, ax=axs, shrink=0.7, extend='both')
 # aware that some vector image viewers may smooth image pixels.
 #
 # The second method is to exactly match the size of your axes to the size of
-# your data. In the following, the figure is exactly 2 inches by 2 inches, and
-# the dpi is 200, then the 400x400 data is not resampled at all. If you download
+# your data. The following figure is exactly 2 inches by 2 inches, and
+# if the dpi is 200, then the 400x400 data is not resampled at all. If you download
 # this image and zoom in an image viewer you should see the individual stripes
-# on the left hand side.
+# on the left hand side (note that if you have a non hiDPI or "retina" screen, the html
+# may serve a 100x100 version of the image, which will be downsampled.)
 
-fig = plt.figure(figsize=(2, 2), dpi=200)
+fig = plt.figure(figsize=(2, 2))
 ax = fig.add_axes([0, 0, 1, 1])
 ax.imshow(aa[:400, :400], cmap='RdBu_r', interpolation='nearest')
 plt.show()
