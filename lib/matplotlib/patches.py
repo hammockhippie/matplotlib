@@ -430,7 +430,7 @@ class Patch(artist.Artist):
 
         Parameters
         ----------
-        c : color or None
+        color : :mpltype:`color` or None
         """
         self._set_hatchcolor(color)
 
