@@ -72,7 +72,10 @@ class Patch(artist.Artist):
         if joinstyle is None:
             joinstyle = JoinStyle.miter
 
-        self._hatch_color = colors.to_rgba(mpl.rcParams['hatch.color'])
+        hatchcolor = mpl._val_or_rc(hatchcolor, "hatch.color")
+        if hatchcolor == 'inherit':
+            hatchcolor = mpl.rcParams["patch.edgecolor"]
+
         self._fill = bool(fill)  # needed for set_facecolor call
         if color is not None:
             if edgecolor is not None or facecolor is not None:
@@ -361,18 +364,14 @@ class Patch(artist.Artist):
         self.stale = True
 
     def _set_edgecolor(self, color):
-        set_hatch_color = True
         if color is None:
             if (mpl.rcParams['patch.force_edgecolor'] or
                     not self._fill or self._edge_default):
                 color = mpl.rcParams['patch.edgecolor']
             else:
                 color = 'none'
-                set_hatch_color = False
 
         self._edgecolor = colors.to_rgba(color, self._alpha)
-        if set_hatch_color:
-            self._hatch_color = self._edgecolor
         self.stale = True
 
     def set_edgecolor(self, color):
@@ -417,17 +416,12 @@ class Patch(artist.Artist):
         Patch.set_facecolor, Patch.set_edgecolor
             For setting the edge or face color individually.
         """
-        self.set_facecolor(c)
-        self.set_hatchcolor(c)
         self.set_edgecolor(c)
+        self.set_hatchcolor(c)
+        self.set_facecolor(c)
 
     def _set_hatchcolor(self, color):
-        self.set_hatch_color = True
-        if color is None:
-            self.set_hatch_color = False
-            color = mpl.rcParams['hatch.color']
-        alpha = self._alpha if self._fill else 0
-        self._hatch_color = colors.to_rgba(color, alpha)
+        self._hatch_color = colors.to_rgba(color)
         self.stale = True
 
     def set_hatchcolor(self, color):
@@ -438,7 +432,6 @@ class Patch(artist.Artist):
         ----------
         c : color or None
         """
-        self._hatch_color = color
         self._set_hatchcolor(color)
 
     def set_alpha(self, alpha):
