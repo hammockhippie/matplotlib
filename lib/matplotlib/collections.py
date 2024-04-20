@@ -174,7 +174,10 @@ class Collection(artist.Artist, cm.ScalarMappable):
         self._edge_is_mapped = None
         self._mapped_colors = None  # calculated in update_scalarmappable
         hatchcolors = mpl._val_or_rc(hatchcolors, "hatch.color")
-        self._hatch_color = None
+        if isinstance(hatchcolors, str):
+            self._hatch_color = mcolors.to_rgba(hatchcolors)
+        else:
+            self._hatch_color = mcolors.to_rgba_array(hatchcolors[0])
         self.set_facecolor(facecolors)
         self.set_edgecolor(edgecolors)
         self.set_linewidth(linewidths)
