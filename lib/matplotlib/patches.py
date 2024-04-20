@@ -295,6 +295,7 @@ class Patch(artist.Artist):
         self._fill = other._fill
         self._hatch = other._hatch
         self._hatch_color = other._hatch_color
+        self._original_hatchcolor = other._original_hatchcolor
         self._unscaled_dash_pattern = other._unscaled_dash_pattern
         self.set_linewidth(other._linewidth)  # also sets scaled dashes
         self.set_transform(other.get_data_transform())
@@ -432,6 +433,7 @@ class Patch(artist.Artist):
         ----------
         color : :mpltype:`color` or None
         """
+        self._original_hatchcolor = color
         self._set_hatchcolor(color)
 
     def set_alpha(self, alpha):
@@ -439,6 +441,7 @@ class Patch(artist.Artist):
         super().set_alpha(alpha)
         self._set_facecolor(self._original_facecolor)
         self._set_edgecolor(self._original_edgecolor)
+        self._set_hatchcolor(self._original_hatchcolor)
         # stale is already True
 
     def set_linewidth(self, w):
@@ -502,6 +505,7 @@ class Patch(artist.Artist):
         self._fill = bool(b)
         self._set_facecolor(self._original_facecolor)
         self._set_edgecolor(self._original_edgecolor)
+        self._set_hatchcolor(self._original_hatchcolor)
         self.stale = True
 
     def get_fill(self):
