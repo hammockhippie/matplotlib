@@ -21,6 +21,7 @@ class Collection(artist.Artist, cm.ScalarMappable):
         *,
         edgecolors: ColorType | Sequence[ColorType] | None = ...,
         facecolors: ColorType | Sequence[ColorType] | None = ...,
+        hatchcolors: ColorType | Sequence[ColorType] | None = ...,
         linewidths: float | Sequence[float] | None = ...,
         linestyles: LineStyleType | Sequence[LineStyleType] = ...,
         capstyle: CapStyleType | None = ...,

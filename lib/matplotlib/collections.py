@@ -78,6 +78,7 @@ class Collection(artist.Artist, cm.ScalarMappable):
     def __init__(self, *,
                  edgecolors=None,
                  facecolors=None,
+                 hatchcolors=None,
                  linewidths=None,
                  linestyles='solid',
                  capstyle=None,
@@ -89,7 +90,6 @@ class Collection(artist.Artist, cm.ScalarMappable):
                  cmap=None,  # ditto
                  pickradius=5.0,
                  hatch=None,
-                 hatchcolors=None,
                  urls=None,
                  zorder=1,
                  **kwargs
