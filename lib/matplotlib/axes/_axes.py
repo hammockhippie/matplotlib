@@ -485,7 +485,7 @@ class Axes(_AxesBase):
             transform = self.transData
         kwargs.setdefault('label', '_indicate_inset')
 
-        indicator_patch = mpatches.IndicateInset(
+        indicator_patch = mpatches.InsetIndicator(
             bounds, inset_ax=inset_ax,
             facecolor=facecolor, edgecolor=edgecolor, alpha=alpha,
             zorder=zorder, transform=transform, **kwargs)
