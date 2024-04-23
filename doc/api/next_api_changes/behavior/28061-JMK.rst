@@ -11,4 +11,5 @@ The previous default was 'data', so down-sampled images may change subtly with
 the new default.  However, the new default also avoids floating point artifacts
 at sharp boundaries in a colormap when down-sampling.
 
-The previous behavior can achieved by changing :rc:`image.interpolation_stage`.
+The previous behavior can achieved by setting :rc:`image.interpolation_stage` or
+the *interpolation_stage* parameter in `~.axes.Axes.imshow` to 'data'.
