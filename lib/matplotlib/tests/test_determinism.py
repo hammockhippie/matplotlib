@@ -8,12 +8,11 @@ import sys
 import pytest
 
 import matplotlib as mpl
-from matplotlib import patches
 from matplotlib import pyplot as plt
 from matplotlib.cbook import get_sample_data
 from matplotlib.image import BboxImage
 from matplotlib.offsetbox import AnchoredOffsetbox, AuxTransformBox
-from matplotlib.patches import PathPatch
+from matplotlib.patches import Circle, PathPatch
 from matplotlib.testing import subprocess_run_for_testing
 from matplotlib.testing._markers import needs_ghostscript, needs_usetex
 import matplotlib.testing.compare
@@ -86,7 +85,7 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         # add a polar projection
         px = fig.add_subplot(projection="polar")
         pimg = px.imshow([[2]])
-        pimg.set_clip_path(circle)
+        pimg.set_clip_path(Circle((0, 1), radius=0.3333))
 
         # add a text-based clipping path (origin: demo_text_path.py)
         (ax1, ax2) = fig.subplots(2)
