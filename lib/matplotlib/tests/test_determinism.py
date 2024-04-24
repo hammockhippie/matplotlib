@@ -11,8 +11,39 @@ import matplotlib as mpl
 import matplotlib.testing.compare
 from matplotlib import patches
 from matplotlib import pyplot as plt
+from matplotlib.cbook import get_sample_data
+from matplotlib.image import BboxImage
+from matplotlib.offsetbox import AnchoredOffsetbox, AuxTransformBox
+from matplotlib.patches import PathPatch
 from matplotlib.testing._markers import needs_ghostscript, needs_usetex
 from matplotlib.testing import subprocess_run_for_testing
+from matplotlib.text import TextPath
+from matplotlib.transforms import IdentityTransform
+
+
+class PathClippedImagePatch(PathPatch):
+    """
+    The given image is used to draw the face of the patch. Internally,
+    it uses BboxImage whose clippath set to the path of the patch.
+
+    FIXME : The result is currently dpi dependent.
+    """
+
+    def __init__(self, path, bbox_image, **kwargs):
+        super().__init__(path, **kwargs)
+        self.bbox_image = BboxImage(
+            self.get_window_extent, norm=None, origin=None)
+        self.bbox_image.set_data(bbox_image)
+
+    def set_facecolor(self, color):
+        """Simply ignore facecolor."""
+        super().set_facecolor("none")
+
+    def draw(self, renderer=None):
+        # the clip path must be updated every draw. any solution? -JJ
+        self.bbox_image.set_clip_path(self._path, self.get_transform())
+        self.bbox_image.draw(renderer)
+        super().draw(renderer)
 
 
 def _save_figure(objects='mhip', fmt="pdf", usetex=False):
@@ -62,6 +93,17 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         pimg = px.imshow([[2]])
         pimg.set_clip_path(circle)
 
+        # add a text-based clipping path (origin: demo_text_path.py)
+        (ax1, ax2) = fig.subplots(2)
+        arr = plt.imread(get_sample_data("grace_hopper.jpg"))
+        text_path = TextPath((0, 0), "!?", size=150)
+        p = PathClippedImagePatch(text_path, arr, ec="k")
+        offsetbox = AuxTransformBox(IdentityTransform())
+        offsetbox.add_artist(p)
+        ao = AnchoredOffsetbox(loc='upper left', child=offsetbox, frameon=True,
+                               borderpad=0.2)
+        ax1.add_artist(ao)
+
     x = range(5)
     ax = fig.add_subplot(1, 6, 6)
     ax.plot(x, x)
@@ -98,7 +140,7 @@ def test_determinism_check(objects, fmt, usetex):
     ----------
     objects : str
         Objects to be included in the test document: 'm' for markers, 'h' for
-        hatch patterns, 'i' for images, and 'p' for projections.
+        hatch patterns, 'i' for images, and 'p' for paths.
     fmt : {"pdf", "ps", "svg"}
         Output format.
     """
