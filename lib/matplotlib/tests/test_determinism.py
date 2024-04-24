@@ -81,10 +81,10 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         ("m", "pdf", False),
         ("h", "pdf", False),
         ("i", "pdf", False),
-        ("mhi", "pdf", False),
-        ("mhi", "ps", False),
+        ("mhip", "pdf", False),
+        ("mhip", "ps", False),
         pytest.param(
-            "mhi", "ps", True, marks=[needs_usetex, needs_ghostscript]),
+            "mhip", "ps", True, marks=[needs_usetex, needs_ghostscript]),
         ("mhip", "svg", False),
         pytest.param("mhip", "svg", True, marks=needs_usetex),
     ]
