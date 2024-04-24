@@ -324,7 +324,7 @@ def test_clip_path_ids_reuse():
         node_id = node.attrib['id']
         assert node_id not in clip_path_ids  # assert ID uniqueness
         clip_path_ids.add(node_id)
-    assert len(clip_path_ids) == 2  # only two clipPaths despite re-use in multiple axes
+    assert len(clip_path_ids) == 2  # only two clipPaths despite reuse in multiple axes
 
 
 def test_savefig_tight():
