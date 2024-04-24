@@ -51,7 +51,6 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
     mpl.rcParams.update({'svg.hashsalt': 'asdf', 'text.usetex': usetex})
 
     fig = plt.figure()
-    circle = patches.Circle((0, 1), radius=0.3333)
 
     if 'm' in objects:
         # use different markers...
@@ -62,8 +61,6 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         ax1.plot(x, [3] * 10, marker='^')
         ax1.plot(x, [4] * 10, marker='H')
         ax1.plot(x, [5] * 10, marker='v')
-        ax1img = ax1.imshow([[0]])
-        ax1img.set_clip_path(circle)
 
     if 'h' in objects:
         # also use different hatch patterns
@@ -71,8 +68,6 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         bars = (ax2.bar(range(1, 5), range(1, 5)) +
                 ax2.bar(range(1, 5), [6] * 4, bottom=range(1, 5)))
         ax2.set_xticks([1.5, 2.5, 3.5, 4.5])
-        ax2img = ax2.imshow([[1]])
-        ax2img.set_clip_path(circle)
 
         patterns = ('-', '+', 'x', '\\', '*', 'o', 'O', '.')
         for bar, pattern in zip(bars, patterns):
@@ -110,8 +105,6 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
     ax.set_title('A string $1+2+\\sigma$')
     ax.set_xlabel('A string $1+2+\\sigma$')
     ax.set_ylabel('A string $1+2+\\sigma$')
-    aimg = ax.imshow([[1]])
-    aimg.set_clip_path(circle)
 
     stdout = getattr(sys.stdout, 'buffer', sys.stdout)
     fig.savefig(stdout, format=fmt)
