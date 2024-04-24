@@ -8,15 +8,15 @@ import sys
 import pytest
 
 import matplotlib as mpl
-import matplotlib.testing.compare
 from matplotlib import patches
 from matplotlib import pyplot as plt
 from matplotlib.cbook import get_sample_data
 from matplotlib.image import BboxImage
 from matplotlib.offsetbox import AnchoredOffsetbox, AuxTransformBox
 from matplotlib.patches import PathPatch
-from matplotlib.testing._markers import needs_ghostscript, needs_usetex
 from matplotlib.testing import subprocess_run_for_testing
+from matplotlib.testing._markers import needs_ghostscript, needs_usetex
+import matplotlib.testing.compare
 from matplotlib.text import TextPath
 from matplotlib.transforms import IdentityTransform
 
