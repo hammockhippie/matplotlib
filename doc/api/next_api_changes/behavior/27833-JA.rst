@@ -5,4 +5,4 @@ Some SVG-format plots were found to be `producing different output on each rende
 
 The cause relates to non-deterministic generation of identifiers for non-rectangular clip paths; the fix introduces a monotonically increasing integer ID scheme for those elements instead.
 
-Provided that plots add non-rectangular clip paths in deterministic order, this should provide repeatable (a.k.a. reproducible, deterministic) SVG output.
+Provided that any plots that use non-rectangular clip paths add them in a deterministic order, this should provide repeatable (a.k.a. reproducible, deterministic) SVG output.
