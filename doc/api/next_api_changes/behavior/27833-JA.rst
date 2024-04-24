@@ -1,7 +1,7 @@
 SVG output: improved reproducibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A problem that caused some plots to `produce different SVG output on each render <https://github.com/matplotlib/matplotlib/issues/27831>`, even with a static ``svg.hashsalt`` configuration setting, was discovered.
+Some SVG-format plots were found to be `producing different output on each render <https://github.com/matplotlib/matplotlib/issues/27831>`, even with a static ``svg.hashsalt`` value configured.
 
 The cause relates to non-deterministic generation of identifiers for non-rectangular clip paths; the fix introduces a monotonically increasing integer ID scheme for those elements instead.
 
