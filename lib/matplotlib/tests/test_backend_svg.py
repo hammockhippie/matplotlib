@@ -10,12 +10,12 @@ import numpy as np
 
 import matplotlib as mpl
 from matplotlib.figure import Figure
+from matplotlib.patches import Circle
 from matplotlib.text import Text
 import matplotlib.pyplot as plt
 from matplotlib.testing.decorators import check_figures_equal, image_comparison
 from matplotlib.testing._markers import needs_usetex
 from matplotlib import font_manager as fm
-from matplotlib import patches
 from matplotlib.offsetbox import (OffsetImage, AnnotationBbox)
 
 
@@ -301,13 +301,13 @@ def test_gid():
 
 
 def test_clip_path_ids_reuse():
-    fig, circle = Figure(), patches.Circle((0, 0), radius=10)
+    fig, circle = Figure(), Circle((0, 0), radius=10)
     for i in range(5):
         ax = fig.add_subplot()
         aimg = ax.imshow([[i]])
         aimg.set_clip_path(circle)
 
-    inner_circle = patches.Circle((0, 0), radius=1)
+    inner_circle = Circle((0, 0), radius=1)
     ax = fig.add_subplot()
     aimg = ax.imshow([[0]])
     aimg.set_clip_path(inner_circle)
