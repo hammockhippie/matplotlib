@@ -1,4 +1,5 @@
 import base64
+from collections import defaultdict
 import codecs
 import datetime
 import gzip
@@ -302,7 +303,7 @@ class RendererSVG(RendererBase):
 
         self._groupd = {}
         self._image_counter = itertools.count()
-        self._clip_id = 0
+        self._clip_path_ids = defaultdict(lambda c=itertools.count(): next(c))
         self._clipd = {}
         self._markers = {}
         self._path_collection_id = 0
@@ -326,10 +327,8 @@ class RendererSVG(RendererBase):
         self._write_metadata(metadata)
         self._write_default_style()
 
-    def _get_next_clip_id(self):
-        clip_id = self._clip_id
-        self._clip_id += 1
-        return clip_id
+    def _get_next_clip_id(self, clippath):
+        return self._clip_path_ids[clippath]
 
     def finalize(self):
         self._write_clips()
@@ -596,7 +595,7 @@ class RendererSVG(RendererBase):
         clippath, clippath_trans = gc.get_clip_path()
         if clippath is not None:
             clippath_trans = self._make_flip_transform(clippath_trans)
-            dictkey = (self._get_next_clip_id(), str(clippath_trans))
+            dictkey = (self._get_next_clip_id(clippath), str(clippath_trans))
         elif cliprect is not None:
             x, y, w, h = cliprect.bounds
             y = self.height-(y+h)

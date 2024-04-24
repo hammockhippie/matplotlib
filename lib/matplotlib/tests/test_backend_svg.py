@@ -300,12 +300,17 @@ def test_gid():
             assert gid in buf
 
 
-def test_clip_path_ids_unique():
+def test_clip_path_ids_reuse():
     fig, circle = Figure(), patches.Circle((0, 0), radius=10)
     for i in range(5):
         ax = fig.add_subplot()
         aimg = ax.imshow([[i]])
         aimg.set_clip_path(circle)
+
+    inner_circle = patches.Circle((0, 0), radius=1)
+    ax = fig.add_subplot()
+    aimg = ax.imshow([[0]])
+    aimg.set_clip_path(inner_circle)
 
     with BytesIO() as fd:
         fig.savefig(fd, format='svg')
@@ -319,7 +324,7 @@ def test_clip_path_ids_unique():
         node_id = node.attrib['id']
         assert node_id not in clip_path_ids  # assert ID uniqueness
         clip_path_ids.add(node_id)
-    assert len(clip_path_ids) == 5
+    assert len(clip_path_ids) == 2  # only two clipPaths despite re-use in multiple axes
 
 
 def test_savefig_tight():
