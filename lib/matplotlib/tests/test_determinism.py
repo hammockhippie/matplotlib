@@ -115,7 +115,7 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         ("m", "pdf", False),
         ("h", "pdf", False),
         ("i", "pdf", False),
-        ("p", "svg", False),
+        ("p", "svg", False),  # (clipping) paths are only relevant for SVG output
         ("mhip", "pdf", False),
         ("mhip", "ps", False),
         pytest.param(
