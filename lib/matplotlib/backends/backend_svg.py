@@ -328,8 +328,8 @@ class RendererSVG(RendererBase):
 
     def _get_clippath_id(self, clippath):
         """
-        Returns a stable, unique identifier for the clippath argument object
-        within the current rendering context.
+        Returns a stable, unique, and deterministic identifier for the
+        clippath argument object within the current rendering context.
         """
         if clippath not in self._clip_path_ids:
             self._clip_path_ids[clippath] = len(self._clip_path_ids)
