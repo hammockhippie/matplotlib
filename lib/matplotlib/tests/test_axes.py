@@ -4598,8 +4598,12 @@ def test_hist_stacked_bar():
               (0.28302699607823545, 0.0, 1.0), (0.6849123462299822, 0.0, 1.0)]
     labels = ['green', 'orange', ' yellow', 'magenta', 'black']
     fig, ax = plt.subplots()
-    ax.hist(d, bins=10, histtype='barstacked', align='mid', color=colors,
-            label=labels)
+    ax.hist(
+        d, bins=10, histtype='barstacked', align='mid', color=colors,
+        label=labels, hatch=['+', 'o', '.', '|', '/', 'O'],
+        edgecolor=['black', 'red', 'blue', 'orange', 'green', 'purple'],
+        linewidth=[1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
+        )
     ax.legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), ncols=1)
 
 
