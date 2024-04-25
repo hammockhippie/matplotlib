@@ -327,7 +327,7 @@ class RendererSVG(RendererBase):
         self._write_metadata(metadata)
         self._write_default_style()
 
-    def _get_next_clip_id(self, clippath):
+    def _get_clippath_id(self, clippath):
         return self._clip_path_ids[clippath]
 
     def finalize(self):
@@ -595,7 +595,7 @@ class RendererSVG(RendererBase):
         clippath, clippath_trans = gc.get_clip_path()
         if clippath is not None:
             clippath_trans = self._make_flip_transform(clippath_trans)
-            dictkey = (self._get_next_clip_id(clippath), str(clippath_trans))
+            dictkey = (self._get_clippath_id(clippath), str(clippath_trans))
         elif cliprect is not None:
             x, y, w, h = cliprect.bounds
             y = self.height-(y+h)
