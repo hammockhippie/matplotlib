@@ -330,6 +330,9 @@ class RendererSVG(RendererBase):
         """
         Returns a stable, unique, and deterministic identifier for the
         *clippath* argument object within the current rendering context.
+
+        This allows plots that include custom clip paths to produce identical
+        SVG output on each render when :rc:`svg.hashsalt` is configured.
         """
         if clippath not in self._clip_path_ids:
             self._clip_path_ids[clippath] = len(self._clip_path_ids)
