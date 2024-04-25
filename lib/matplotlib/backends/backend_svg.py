@@ -1,5 +1,4 @@
 import base64
-from collections import defaultdict
 import codecs
 import datetime
 import gzip
@@ -303,7 +302,7 @@ class RendererSVG(RendererBase):
 
         self._groupd = {}
         self._image_counter = itertools.count()
-        self._clip_path_ids = defaultdict(lambda c=itertools.count(): next(c))
+        self._clip_path_ids = {}
         self._clipd = {}
         self._markers = {}
         self._path_collection_id = 0
@@ -331,6 +330,8 @@ class RendererSVG(RendererBase):
         """Returns a stable, unique identifier for the clippath argument object
            within the current rendering context.
         """
+        if clippath not in self._clip_path_ids:
+            self._clip_path_ids[clippath] = len(self._clip_path_ids)
         return self._clip_path_ids[clippath]
 
     def finalize(self):
