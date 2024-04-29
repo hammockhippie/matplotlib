@@ -10,9 +10,11 @@ import pytest
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.cbook import get_sample_data
+from matplotlib.collections import PathCollection
 from matplotlib.image import BboxImage
 from matplotlib.offsetbox import AnchoredOffsetbox, AuxTransformBox
 from matplotlib.patches import Circle, PathPatch
+from matplotlib.path import Path
 from matplotlib.testing import subprocess_run_for_testing
 from matplotlib.testing._markers import needs_ghostscript, needs_usetex
 import matplotlib.testing.compare
@@ -97,6 +99,33 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         ao = AnchoredOffsetbox(loc='upper left', child=offsetbox, frameon=True,
                                borderpad=0.2)
         ax1.add_artist(ao)
+
+        # add a 2x2 grid of path-clipped axes (origin: test_artist.py)
+        exterior = Path.unit_rectangle().deepcopy()
+        exterior.vertices *= 4
+        exterior.vertices -= 2
+        interior = Path.unit_circle().deepcopy()
+        interior.vertices = interior.vertices[::-1]
+        clip_path = Path.make_compound_path(exterior, interior)
+
+        star = Path.unit_regular_star(6).deepcopy()
+        star.vertices *= 2.6
+
+        fig, (row1, row2) = plt.subplots(2, 2, sharex=True, sharey=True)
+        for row in (row1, row2):
+            ax1, ax2 = row
+            collection = PathCollection([star], lw=5, edgecolor='blue',
+                                        facecolor='red', alpha=0.7, hatch='*')
+            collection.set_clip_path(clip_path, ax1.transData)
+            ax1.add_collection(collection)
+
+            patch = PathPatch(star, lw=5, edgecolor='blue', facecolor='red',
+                              alpha=0.7, hatch='*')
+            patch.set_clip_path(clip_path, ax2.transData)
+            ax2.add_patch(patch)
+
+            ax1.set_xlim([-3, 3])
+            ax1.set_ylim([-3, 3])
 
     x = range(5)
     ax = fig.add_subplot(1, 6, 6)
