@@ -111,7 +111,7 @@ def _save_figure(objects='mhip', fmt="pdf", usetex=False):
         star = Path.unit_regular_star(6).deepcopy()
         star.vertices *= 2.6
 
-        fig, (row1, row2) = plt.subplots(2, 2, sharex=True, sharey=True)
+        (row1, row2) = fig.subplots(2, 2, sharex=True, sharey=True)
         for row in (row1, row2):
             ax1, ax2 = row
             collection = PathCollection([star], lw=5, edgecolor='blue',
