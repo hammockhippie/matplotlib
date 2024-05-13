@@ -4611,7 +4611,7 @@ def test_hist_stacked_bar():
         edgecolor='black',
         linewidth=1.5,
         )
-    axs[1].legend(loc='upper left', bbox_to_anchor=(1.0, 1.0), ncols=1)
+    axs[1].legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), ncols=1)
 
 
 def test_hist_barstacked_bottom_unchanged():
