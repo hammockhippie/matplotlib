@@ -1904,21 +1904,21 @@ class Axes3D(Axes):
 
     plot3D = plot
 
-    def fill_between(self, xs1, ys1, zs1, xs2, ys2, zs2, *, where=None, **kwargs):
+    def fill_between(self, x1, y1, z1, x2, y2, z2, *, where=None, **kwargs):
         """
         Fill the area between two 2D or 3D curves.
 
-        The curves are defined by the points (*xs1*, *ys1*, *zs1*) and
-        (*xs2*, *ys2*, *zs2*). This creates one or multiple quadrangle
+        The curves are defined by the points (*x1*, *y1*, *z1*) and
+        (*x2*, *y2*, *z2*). This creates one or multiple quadrangle
         polygons that are filled. All points must be the same length N, or a
         single value to be used for all points.
 
         Parameters
         ----------
-        xs1, ys1, zs1 : float or 1D array-like
+        x1, y1, z1 : float or 1D array-like
             x, y, and z  coordinates of vertices for 1st line.
 
-        xs2, ys2, zs2 : float or 1D array-like
+        x2, y2, z2 : float or 1D array-like
             x, y, and z coordinates of vertices for 2nd line.
 
         where : array of bool (length N), optional
@@ -1941,41 +1941,40 @@ class Axes3D(Axes):
 
         """
         had_data = self.has_data()
-        xs1, ys1, zs1, xs2, ys2, zs2 = cbook._broadcast_with_masks(xs1, ys1, zs1,
-                                                                   xs2, ys2, zs2)
+        x1, y1, z1, x2, y2, z2 = cbook._broadcast_with_masks(x1, y1, z1, x2, y2, z2)
 
         if where is None:
             where = True
         else:
             where = np.asarray(where, dtype=bool)
-            if where.size != xs1.size:
+            if where.size != x1.size:
                 raise ValueError(f"where size ({where.size}) does not match "
-                                 f"size ({xs1.size})")
-        where = where & ~np.isnan(xs1)  # NaNs were broadcast in _broadcast_with_masks
+                                 f"size ({x1.size})")
+        where = where & ~np.isnan(x1)  # NaNs were broadcast in _broadcast_with_masks
 
         polys = []
         for idx0, idx1 in cbook.contiguous_regions(where):
-            xs1slice = xs1[idx0:idx1]
-            ys1slice = ys1[idx0:idx1]
-            zs1slice = zs1[idx0:idx1]
-            xs2slice = xs2[idx0:idx1]
-            ys2slice = ys2[idx0:idx1]
-            zs2slice = zs2[idx0:idx1]
+            x1slice = x1[idx0:idx1]
+            y1slice = y1[idx0:idx1]
+            z1slice = z1[idx0:idx1]
+            x2slice = x2[idx0:idx1]
+            y2slice = y2[idx0:idx1]
+            z2slice = z2[idx0:idx1]
 
-            if not len(xs1slice):
+            if not len(x1slice):
                 continue
 
-            for i in range(len(xs1slice) - 1):
-                poly = [(xs1slice[i], ys1slice[i], zs1slice[i]),
-                        (xs1slice[i+1], ys1slice[i+1], zs1slice[i+1]),
-                        (xs2slice[i+1], ys2slice[i+1], zs2slice[i+1]),
-                        (xs2slice[i], ys2slice[i], zs2slice[i])]
+            for i in range(len(x1slice) - 1):
+                poly = [(x1slice[i], y1slice[i], z1slice[i]),
+                        (x1slice[i+1], y1slice[i+1], z1slice[i+1]),
+                        (x2slice[i+1], y2slice[i+1], z2slice[i+1]),
+                        (x2slice[i], y2slice[i], z2slice[i])]
                 polys.append(poly)
 
         polyc = art3d.Poly3DCollection(polys, **kwargs)
         self.add_collection(polyc)
 
-        self.auto_scale_xyz([xs1, xs2], [ys1, ys2], [zs1, zs2], had_data)
+        self.auto_scale_xyz([x1, x2], [y1, y2], [z1, z2], had_data)
         return polyc
 
     def plot_surface(self, X, Y, Z, *, norm=None, vmin=None,
