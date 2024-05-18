@@ -1906,7 +1906,7 @@ class Axes3D(Axes):
 
     def fill_between(self, x1, y1, z1, x2, y2, z2, *, where=None, **kwargs):
         """
-        Fill the area between two 2D or 3D curves.
+        Fill the area between two 3D curves.
 
         The curves are defined by the points (*x1*, *y1*, *z1*) and
         (*x2*, *y2*, *z2*). This creates one or multiple quadrangle

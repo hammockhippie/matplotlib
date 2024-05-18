@@ -1,13 +1,12 @@
 Fill between 3D lines
 ---------------------
 
-The `.Axes.fill_between` method has been extended to 3D, allowing to fill the
-surface between two 3D lines with polygons through the `.Axes3D.fill_between`
-function.
+The new method `.Axes3D.fill_between` allows to fill the surface between two
+3D lines with polygons.
 
 .. plot::
     :include-source:
-    :alt: Example of fill_between
+    :alt: Example of 3D fill_between
 
     N = 50
     theta = np.linspace(0, 2*np.pi, N)
