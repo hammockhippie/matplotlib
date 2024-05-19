@@ -50,6 +50,7 @@ plt.show()
 # ------------
 #
 # Plotting a bar chart with sample sets differentiated using:
+#
 # * edgecolors
 # * hatches
 # * linewidths
@@ -59,7 +60,7 @@ plt.show()
 # histograms (stacked, step, etc.) and not just for the *bar*
 # type histogram as shown in the example.
 
-hatches = ["-", ".", "x"]
+hatches = ["-", "o", "x"]
 linewidths = [1, 2, 3]
 edgecolors = ["green", "red", "blue"]
 linestyles = ["-", ":", "--"]
