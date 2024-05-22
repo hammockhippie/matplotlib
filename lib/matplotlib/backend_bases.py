@@ -2256,14 +2256,7 @@ class FigureCanvasBase:
             {ord(c): "_" for c in removed_chars})
         default_filetype = self.get_default_filetype()
         save_dir = os.path.expanduser(rcParams.get("savefig.directory", ""))
-        # Ensure non-existing filename in save dir.
-        default_filename = next(
-            filename for filename in itertools.chain(
-                ["{}.{}".format(default_basename, default_filetype)],
-                ("{}-{}.{}".format(default_basename, i, default_filetype)
-                 for i in itertools.count(1)))
-            if not os.path.isfile(os.path.join(save_dir, filename)))
-        return default_filename
+        return f'{default_basename}.{default_filetype}'
 
     @_api.deprecated("3.8")
     def switch_backends(self, FigureCanvasClass):
