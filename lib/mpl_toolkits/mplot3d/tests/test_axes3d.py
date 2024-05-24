@@ -1766,6 +1766,82 @@ def test_shared_axes_retick():
     assert ax2.get_zlim() == (-0.5, 2.5)
 
 
+def test_quaternion():
+    # 1:
+    q1 = axes3d.Quaternion(1, [0, 0, 0])
+    assert q1.scalar == 1
+    assert (q1.vector == [0, 0, 0]).all
+    # __neg__:
+    assert (-q1).scalar == -1
+    assert ((-q1).vector == [0, 0, 0]).all
+    # i, j, k:
+    qi = axes3d.Quaternion(0, [1, 0, 0])
+    assert qi.scalar == 0
+    assert (qi.vector == [1, 0, 0]).all
+    qj = axes3d.Quaternion(0, [0, 1, 0])
+    assert qj.scalar == 0
+    assert (qj.vector == [0, 1, 0]).all
+    qk = axes3d.Quaternion(0, [0, 0, 1])
+    assert qk.scalar == 0
+    assert (qk.vector == [0, 0, 1]).all
+    # i^2 = j^2 = k^2 = -1:
+    assert qi*qi == -q1
+    assert qj*qj == -q1
+    assert qk*qk == -q1
+    # identity:
+    assert q1*qi == qi
+    assert q1*qj == qj
+    assert q1*qk == qk
+    # i*j=k, j*k=i, k*i=j:
+    assert qi*qj == qk
+    assert qj*qk == qi
+    assert qk*qi == qj
+    assert qj*qi == -qk
+    assert qk*qj == -qi
+    assert qi*qk == -qj
+    # __mul__:
+    assert (axes3d.Quaternion(2, [3, 4, 5]) * axes3d.Quaternion(6, [7, 8, 9])
+            == axes3d.Quaternion(-86, [28, 48, 44]))
+    # from_to():
+    for r1, r2, q in [
+        ([1, 0, 0], [0, 1, 0], axes3d.Quaternion(np.sqrt(1/2), [0, 0, np.sqrt(1/2)])),
+        ([1, 0, 0], [0, 0, 1], axes3d.Quaternion(np.sqrt(1/2), [0, -np.sqrt(1/2), 0])),
+        ([1, 0, 0], [1, 0, 0], axes3d.Quaternion(1, [0, 0, 0]))
+    ]:
+        assert axes3d.Quaternion.from_to(r1, r2) == q
+    # from_cardan_angles(), as_cardan_angles():
+    for elev, azim, roll in [(0, 0, 0),
+                             (90, 0, 0), (0, 90, 0), (0, 0, 90),
+                             (0, 30, 30), (30, 0, 30), (30, 30, 0)]:
+        q = axes3d.Quaternion.from_cardan_angles(
+            np.deg2rad(elev), np.deg2rad(azim), np.deg2rad(roll))
+        e, a, r = np.rad2deg(axes3d.Quaternion.as_cardan_angles(q))
+        assert np.isclose(e, elev)
+        assert np.isclose(a, azim)
+        assert np.isclose(r, roll)
+
+
+def test_rotate():
+    """Test rotating using the left mouse button."""
+    for roll in [0, 30]:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1, projection='3d')
+        ax.view_init(0, 0, roll)
+        ax.figure.canvas.draw()
+
+        # drag mouse horizontally to change orientation
+        ax._button_press(
+            mock_event(ax, button=MouseButton.LEFT, xdata=0, ydata=0))
+        ax._on_move(
+            mock_event(ax, button=MouseButton.LEFT,
+                           xdata=0.5*ax._pseudo_w, ydata=0*ax._pseudo_h))
+        ax.figure.canvas.draw()
+
+        assert np.isclose(ax.elev, roll)
+        assert np.isclose(ax.azim, -90)
+        assert np.isclose(ax.roll, 0)
+
+
 def test_pan():
     """Test mouse panning using the middle mouse button."""
 
