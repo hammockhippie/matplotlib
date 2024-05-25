@@ -1551,7 +1551,6 @@ class Axes3D(Axes):
             azim = np.rad2deg(azim)
             elev = np.rad2deg(elev)
             roll = np.rad2deg(roll)
-
             vertical_axis = self._axis_names[self._vertical_axis]
             self.view_init(
                 elev=elev,
