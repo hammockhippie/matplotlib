@@ -6937,7 +6937,9 @@ such objects
             DATA_PARAMETER_PLACEHOLDER
 
         **kwargs
-            `~matplotlib.patches.Patch` properties
+            `~matplotlib.patches.Patch` properties. The following properties
+            additionally accept lists of property values, one element for each dataset:
+            *edgecolors*, *linewidths*, *linestyles*, *hatches*.
 
         See Also
         --------

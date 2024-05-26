@@ -47,7 +47,7 @@ plt.show()
 
 # %%
 # Setting properties for each sample set
-# ------------
+# --------------------------------------
 #
 # Plotting a bar chart with sample sets differentiated using:
 #
