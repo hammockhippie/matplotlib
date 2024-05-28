@@ -1768,20 +1768,20 @@ def test_shared_axes_retick():
 
 def test_quaternion():
     # 1:
-    q1 = axes3d.Quaternion(1, [0, 0, 0])
+    q1 = axes3d._Quaternion(1, [0, 0, 0])
     assert q1.scalar == 1
     assert (q1.vector == [0, 0, 0]).all
     # __neg__:
     assert (-q1).scalar == -1
     assert ((-q1).vector == [0, 0, 0]).all
     # i, j, k:
-    qi = axes3d.Quaternion(0, [1, 0, 0])
+    qi = axes3d._Quaternion(0, [1, 0, 0])
     assert qi.scalar == 0
     assert (qi.vector == [1, 0, 0]).all
-    qj = axes3d.Quaternion(0, [0, 1, 0])
+    qj = axes3d._Quaternion(0, [0, 1, 0])
     assert qj.scalar == 0
     assert (qj.vector == [0, 1, 0]).all
-    qk = axes3d.Quaternion(0, [0, 0, 1])
+    qk = axes3d._Quaternion(0, [0, 0, 1])
     assert qk.scalar == 0
     assert (qk.vector == [0, 0, 1]).all
     # i^2 = j^2 = k^2 = -1:
@@ -1800,25 +1800,28 @@ def test_quaternion():
     assert qk*qj == -qi
     assert qi*qk == -qj
     # __mul__:
-    assert (axes3d.Quaternion(2, [3, 4, 5]) * axes3d.Quaternion(6, [7, 8, 9])
-            == axes3d.Quaternion(-86, [28, 48, 44]))
+    assert (axes3d._Quaternion(2, [3, 4, 5]) * axes3d._Quaternion(6, [7, 8, 9])
+            == axes3d._Quaternion(-86, [28, 48, 44]))
     # from_to():
     for r1, r2, q in [
-        ([1, 0, 0], [0, 1, 0], axes3d.Quaternion(np.sqrt(1/2), [0, 0, np.sqrt(1/2)])),
-        ([1, 0, 0], [0, 0, 1], axes3d.Quaternion(np.sqrt(1/2), [0, -np.sqrt(1/2), 0])),
-        ([1, 0, 0], [1, 0, 0], axes3d.Quaternion(1, [0, 0, 0]))
+        ([1, 0, 0], [0, 1, 0], axes3d._Quaternion(np.sqrt(1/2), [0, 0, np.sqrt(1/2)])),
+        ([1, 0, 0], [0, 0, 1], axes3d._Quaternion(np.sqrt(1/2), [0, -np.sqrt(1/2), 0])),
+        ([1, 0, 0], [1, 0, 0], axes3d._Quaternion(1, [0, 0, 0]))
     ]:
-        assert axes3d.Quaternion.from_to(r1, r2) == q
+        assert axes3d._Quaternion.from_to(r1, r2) == q
     # from_cardan_angles(), as_cardan_angles():
     for elev, azim, roll in [(0, 0, 0),
                              (90, 0, 0), (0, 90, 0), (0, 0, 90),
                              (0, 30, 30), (30, 0, 30), (30, 30, 0)]:
-        q = axes3d.Quaternion.from_cardan_angles(
-            np.deg2rad(elev), np.deg2rad(azim), np.deg2rad(roll))
-        e, a, r = np.rad2deg(axes3d.Quaternion.as_cardan_angles(q))
-        assert np.isclose(e, elev)
-        assert np.isclose(a, azim)
-        assert np.isclose(r, roll)
+        for mag in [1, 2]:
+            q = axes3d._Quaternion.from_cardan_angles(
+                np.deg2rad(elev), np.deg2rad(azim), np.deg2rad(roll))
+            assert np.isclose(q.scalar*q.scalar + np.dot(q.vector, q.vector), 1)
+            q = axes3d._Quaternion(mag * q.scalar, mag * q.vector)
+            e, a, r = np.rad2deg(axes3d._Quaternion.as_cardan_angles(q))
+            assert np.isclose(e, elev)
+            assert np.isclose(a, azim)
+            assert np.isclose(r, roll)
 
 
 def test_rotate():

@@ -1536,14 +1536,14 @@ class Axes3D(Axes):
             elev = np.deg2rad(self.elev)
             azim = np.deg2rad(self.azim)
             roll = np.deg2rad(self.roll)
-            q = Quaternion.from_cardan_angles(elev, azim, roll)
+            q = _Quaternion.from_cardan_angles(elev, azim, roll)
 
             # Update quaternion
             current_point = np.array([self._sx/w, self._sy/h])
             new_point = np.array([x/w, y/h])
             current_vec = self._arcball(current_point)
             new_vec = self._arcball(new_point)
-            dq = Quaternion.from_to(current_vec, new_vec)
+            dq = _Quaternion.from_to(current_vec, new_vec)
             q = dq*q
 
             # Convert to elev, azim, roll
@@ -3735,7 +3735,7 @@ def get_test_data(delta=0.05):
     return X, Y, Z
 
 
-class Quaternion:
+class _Quaternion:
     """
     Quaternions
     consisting of scalar, along 1, and vector, with components along i, j, k
@@ -3762,7 +3762,7 @@ class Quaternion:
         return (self.scalar == other.scalar) and (self.vector == other.vector).all
 
     def __repr__(self):
-        return "Quaternion({}, {})".format(repr(self.scalar), repr(self.vector))
+        return "_Quaternion({}, {})".format(repr(self.scalar), repr(self.vector))
 
     @classmethod
     def from_to(cls, r1, r2):
@@ -3800,9 +3800,7 @@ class Quaternion:
     def as_cardan_angles(self):
         """The inverse of from_cardan_angles()."""
         qw = self.scalar
-        qx = self.vector[..., 0]
-        qy = self.vector[..., 1]
-        qz = self.vector[..., 2]
+        qx, qy, qz = self.vector[..., :]
         azim = np.arctan2(2*(-qw*qz+qx*qy), qw*qw+qx*qx-qy*qy-qz*qz)
         elev = np.arcsin( 2*( qw*qy+qz*qx)/(qw*qw+qx*qx+qy*qy+qz*qz))  # noqa E201
         roll = np.arctan2(2*( qw*qx-qy*qz), qw*qw-qx*qx-qy*qy+qz*qz)   # noqa E201
