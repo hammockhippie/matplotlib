@@ -4585,33 +4585,40 @@ def test_hist_stacked_step_bottom_geometry():
         assert_array_equal(polygon.get_xy(), xy[1])
 
 
-@image_comparison(['hist_stacked_bar'], extensions=['png', 'svg', 'pdf'])
+@image_comparison(['hist_stacked_bar'])
 def test_hist_stacked_bar():
     # make some data
     d = [[100, 100, 100, 100, 200, 320, 450, 80, 20, 600, 310, 800],
-            [20, 23, 50, 11, 100, 420], [120, 120, 120, 140, 140, 150, 180],
-            [60, 60, 60, 60, 300, 300, 5, 5, 5, 5, 10, 300],
-            [555, 555, 555, 30, 30, 30, 30, 30, 100, 100, 100, 100, 30, 30],
-            [30, 30, 30, 30, 400, 400, 400, 400, 400, 400, 400, 400]]
+         [20, 23, 50, 11, 100, 420], [120, 120, 120, 140, 140, 150, 180],
+         [60, 60, 60, 60, 300, 300, 5, 5, 5, 5, 10, 300],
+         [555, 555, 555, 30, 30, 30, 30, 30, 100, 100, 100, 100, 30, 30],
+         [30, 30, 30, 30, 400, 400, 400, 400, 400, 400, 400, 400]]
     colors = [(0.5759849696758961, 1.0, 0.0), (0.0, 1.0, 0.350624650815206),
-                (0.0, 1.0, 0.6549834156005998), (0.0, 0.6569064625276622, 1.0),
-                (0.28302699607823545, 0.0, 1.0), (0.6849123462299822, 0.0, 1.0)]
+              (0.0, 1.0, 0.6549834156005998), (0.0, 0.6569064625276622, 1.0),
+              (0.28302699607823545, 0.0, 1.0), (0.6849123462299822, 0.0, 1.0)]
     labels = ['green', 'orange', ' yellow', 'magenta', 'black']
-    fig, axs = plt.subplots(1, 2)
-    axs[0].hist(
-        d, bins=10, histtype='barstacked', align='mid', color=colors,
-        label=labels, hatch=['+', 'o', '.', '|', '/', 'O'],
-        edgecolor=['black', 'red', 'blue', 'orange', 'green', 'purple'],
-        linewidth=[1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
-        )
-    axs[0].legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), ncols=1)
-    axs[1].hist(
-        d, bins=10, histtype='barstacked', align='mid', color=colors,
-        label=labels, hatch='/',
-        edgecolor='black',
-        linewidth=1.5,
-        )
-    axs[1].legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), ncols=1)
+    fig, ax = plt.subplots()
+    ax.hist(d, bins=10, histtype='barstacked', align='mid', color=colors,
+            label=labels)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), ncols=1)
+
+
+@image_comparison(['hist_vectorized_params'], extensions=["png", "pdf", "svg"],
+                  remove_text=True)
+def test_hist_vectorized_params():
+    fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(nrows=2, ncols=2)
+
+    np.random.seed(19680801)
+    x = [np.random.randn(n) for n in [2000, 5000, 10000]]
+
+    ax0.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "green", "blue"],
+                linewidth=[1, 1.2, 1.5], hatch=["/", "\\", "."],
+                linestyle=["-", "--", ":"])
+    ax1.hist(x, bins=10, histtype="barstacked", linewidth=1, hatch="/", linestyle="-")
+    ax2.hist(x, bins=10, histtype="stepfilled", linewidth=1, hatch="o", linestyle=":")
+    ax3.hist(x, bins=10, histtype="stepfilled", edgecolor="brown",
+                linewidth=[1, 1.2, 1.5], hatch=["/", "\\", "o"],
+                linestyle=["-", ":", "--"])
 
 
 def test_hist_barstacked_bottom_unchanged():
