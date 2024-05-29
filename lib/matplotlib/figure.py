@@ -141,6 +141,7 @@ class FigureBase(Artist):
             "title": cbook.Grouper()
         }
 
+        self._figure = self
         self._localaxes = []  # track all Axes
         self.artists = []
         self.lines = []
@@ -2215,7 +2216,7 @@ class SubFigure(FigureBase):
 
         self._subplotspec = subplotspec
         self._parent = parent
-        self.figure = parent.figure
+        self._figure = parent.figure
 
         # subfigures use the parent axstack
         self._axstack = parent._axstack
