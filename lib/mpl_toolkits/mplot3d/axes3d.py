@@ -1909,6 +1909,79 @@ class Axes3D(Axes):
 
     plot3D = plot
 
+    def fill_between(self, x1, y1, z1, x2, y2, z2, *, where=None, **kwargs):
+        """
+        Fill the area between two 3D curves.
+
+        The curves are defined by the points (*x1*, *y1*, *z1*) and
+        (*x2*, *y2*, *z2*). This creates one or multiple quadrangle
+        polygons that are filled. All points must be the same length N, or a
+        single value to be used for all points.
+
+        Parameters
+        ----------
+        x1, y1, z1 : float or 1D array-like
+            x, y, and z  coordinates of vertices for 1st line.
+
+        x2, y2, z2 : float or 1D array-like
+            x, y, and z coordinates of vertices for 2nd line.
+
+        where : array of bool (length N), optional
+            Define *where* to exclude some regions from being filled. The
+            filled regions are defined by the coordinates ``pts[where]``,
+            for all x, y, and z pts. More precisely, fill between ``pts[i]``
+            and ``pts[i+1]`` if ``where[i] and where[i+1]``. Note that this
+            definition implies that an isolated *True* value between two
+            *False* values in *where* will not result in filling. Both sides of
+            the *True* position remain unfilled due to the adjacent *False*
+            values.
+
+        **kwargs
+            All other keyword arguments are passed on to `.Poly3DCollection`.
+
+        Returns
+        -------
+        `.Poly3DCollection`
+            A `.Poly3DCollection` containing the plotted polygons.
+
+        """
+        had_data = self.has_data()
+        x1, y1, z1, x2, y2, z2 = cbook._broadcast_with_masks(x1, y1, z1, x2, y2, z2)
+
+        if where is None:
+            where = True
+        else:
+            where = np.asarray(where, dtype=bool)
+            if where.size != x1.size:
+                raise ValueError(f"where size ({where.size}) does not match "
+                                 f"size ({x1.size})")
+        where = where & ~np.isnan(x1)  # NaNs were broadcast in _broadcast_with_masks
+
+        polys = []
+        for idx0, idx1 in cbook.contiguous_regions(where):
+            x1slice = x1[idx0:idx1]
+            y1slice = y1[idx0:idx1]
+            z1slice = z1[idx0:idx1]
+            x2slice = x2[idx0:idx1]
+            y2slice = y2[idx0:idx1]
+            z2slice = z2[idx0:idx1]
+
+            if not len(x1slice):
+                continue
+
+            for i in range(len(x1slice) - 1):
+                poly = [(x1slice[i], y1slice[i], z1slice[i]),
+                        (x1slice[i+1], y1slice[i+1], z1slice[i+1]),
+                        (x2slice[i+1], y2slice[i+1], z2slice[i+1]),
+                        (x2slice[i], y2slice[i], z2slice[i])]
+                polys.append(poly)
+
+        polyc = art3d.Poly3DCollection(polys, **kwargs)
+        self.add_collection(polyc)
+
+        self.auto_scale_xyz([x1, x2], [y1, y2], [z1, z2], had_data)
+        return polyc
+
     def plot_surface(self, X, Y, Z, *, norm=None, vmin=None,
                      vmax=None, lightsource=None, **kwargs):
         """

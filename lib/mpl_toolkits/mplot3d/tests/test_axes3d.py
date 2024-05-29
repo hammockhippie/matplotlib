@@ -592,6 +592,27 @@ def test_plot_3d_from_2d():
     ax.plot(xs, ys, zs=0, zdir='y')
 
 
+@mpl3d_image_comparison(['fill_between.png'], style='mpl20')
+def test_fill_between():
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+
+    theta = np.linspace(0, 2*np.pi, 50)
+
+    x1 = np.cos(theta)
+    y1 = np.sin(theta)
+    z1 = 0.1 * np.sin(6 * theta)
+
+    x2 = 0.6 * np.cos(theta)
+    y2 = 0.6 * np.sin(theta)
+    z2 = 2
+
+    where = (theta < np.pi/2) | (theta > 3*np.pi/2)
+
+    ax.fill_between(x1, y1, z1, x2, y2, z2,
+                    where=where, alpha=0.5, edgecolor='k')
+
+
 @mpl3d_image_comparison(['surface3d.png'], style='mpl20')
 def test_surface3d():
     # Remove this line when this test image is regenerated.
