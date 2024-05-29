@@ -4611,13 +4611,13 @@ def test_hist_vectorized_params():
     np.random.seed(19680801)
     x = [np.random.randn(n) for n in [2000, 5000, 10000]]
 
-    ax0.hist(x, bins=10, histtype="barstacked", edgecolor=["blue", "black", "red"],
+    ax0.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "black", "blue"],
                 linewidth=[1, 1.2, 1.5], hatch=["/", "\\", "."])
     ax1.hist(x, bins=10, histtype="barstacked", linewidth=[1, 1.2, 1.5],
                 hatch=["/", "\\", "."], linestyle=["-", "--", ":"])
-    ax2.hist(x, bins=10, histtype="barstacked", edgecolor=["blue", "black", "red"],
+    ax2.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "black", "blue"],
                     hatch=["/", "\\", "."], linestyle=["-", "--", ":"])
-    ax3.hist(x, bins=10, histtype="barstacked", edgecolor=["blue", "black", "red"],
+    ax3.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "black", "blue"],
                 linewidth=[1, 1.2, 1.5], linestyle=["-", "--", ":"])
 
 
