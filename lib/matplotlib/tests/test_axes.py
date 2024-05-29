@@ -4603,6 +4603,24 @@ def test_hist_stacked_bar():
     ax.legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), ncols=1)
 
 
+@image_comparison(['hist_vectorized_params'], extensions=["png", "pdf", "svg"],
+                  remove_text=True)
+def test_hist_vectorized_params():
+    fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(nrows=2, ncols=2)
+
+    np.random.seed(19680801)
+    x = [np.random.randn(n) for n in [2000, 5000, 10000]]
+
+    ax0.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "black", "blue"],
+                linewidth=[1, 1.2, 1.5], hatch=["/", "\\", "."])
+    ax1.hist(x, bins=10, histtype="barstacked", linewidth=[1, 1.2, 1.5],
+                hatch=["/", "\\", "."], linestyle=["-", "--", ":"])
+    ax2.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "black", "blue"],
+                    hatch=["/", "\\", "."], linestyle=["-", "--", ":"])
+    ax3.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "black", "blue"],
+                linewidth=[1, 1.2, 1.5], linestyle=["-", "--", ":"])
+
+
 def test_hist_barstacked_bottom_unchanged():
     b = np.array([10, 20])
     plt.hist([[0, 1], [0, 1]], 2, histtype="barstacked", bottom=b)

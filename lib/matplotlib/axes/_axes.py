@@ -6937,7 +6937,9 @@ such objects
             DATA_PARAMETER_PLACEHOLDER
 
         **kwargs
-            `~matplotlib.patches.Patch` properties
+            `~matplotlib.patches.Patch` properties. The following properties
+            additionally accept lists of property values, one element for each dataset:
+            *edgecolors*, *linewidths*, *linestyles*, *hatches*.
 
         See Also
         --------
@@ -7210,9 +7212,22 @@ such objects
         # If None, make all labels None (via zip_longest below); otherwise,
         # cast each element to str, but keep a single str as it.
         labels = [] if label is None else np.atleast_1d(np.asarray(label, str))
+
+        hatches = itertools.cycle(np.atleast_1d(kwargs.get('hatch', None)))
+        edgecolors = itertools.cycle(np.atleast_1d(kwargs.get('edgecolor', None)))
+        linewidths = itertools.cycle(np.atleast_1d(kwargs.get('linewidth', None)))
+        linestyles = itertools.cycle(np.atleast_1d(kwargs.get('linestyle', None)))
+
         for patch, lbl in itertools.zip_longest(patches, labels):
             if patch:
                 p = patch[0]
+                if 'edgecolor' in kwargs:
+                    kwargs['edgecolor'] = next(edgecolors)
+                kwargs.update({
+                    'hatch': next(hatches),
+                    'linewidth': next(linewidths),
+                    'linestyle': next(linestyles),
+                })
                 p._internal_update(kwargs)
                 if lbl is not None:
                     p.set_label(lbl)
