@@ -246,7 +246,8 @@ class FigureBase(Artist):
     ) -> dict[Hashable, Axes]: ...
 
 class SubFigure(FigureBase):
-    figure: Figure
+    @property
+    def figure(self) -> Figure: ...
     subplotpars: SubplotParams
     dpi_scale_trans: Affine2D
     canvas: FigureCanvasBase
@@ -283,7 +284,8 @@ class SubFigure(FigureBase):
     def get_axes(self) -> list[Axes]: ...
 
 class Figure(FigureBase):
-    figure: Figure
+    @property
+    def figure(self) -> Figure: ...
     bbox_inches: Bbox
     dpi_scale_trans: Affine2D
     bbox: BboxBase
