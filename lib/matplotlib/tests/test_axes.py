@@ -4611,14 +4611,14 @@ def test_hist_vectorized_params():
     np.random.seed(19680801)
     x = [np.random.randn(n) for n in [2000, 5000, 10000]]
 
-    ax0.hist(x, bins=10, histtype="barstacked", edgecolor=["red", "green", "blue"],
-                linewidth=[1, 1.2, 1.5], hatch=["/", "\\", "."],
-                linestyle=["-", "--", ":"])
-    ax1.hist(x, bins=10, histtype="barstacked", linewidth=1, hatch="/", linestyle="-")
-    ax2.hist(x, bins=10, histtype="stepfilled", linewidth=1, hatch="o", linestyle=":")
-    ax3.hist(x, bins=10, histtype="stepfilled", edgecolor="brown",
-                linewidth=[1, 1.2, 1.5], hatch=["/", "\\", "o"],
-                linestyle=["-", ":", "--"])
+    ax0.hist(x, bins=10, histtype="barstacked", edgecolor=["blue", "black", "red"],
+                linewidth=[1, 1.2, 1.5], hatch=["/", "\\", "."])
+    ax1.hist(x, bins=10, histtype="barstacked", linewidth=[1, 1.2, 1.5],
+                hatch=["/", "\\", "."], linestyle=["-", "--", ":"])
+    ax2.hist(x, bins=10, histtype="barstacked", edgecolor=["blue", "black", "red"],
+                    hatch=["/", "\\", "."], linestyle=["-", "--", ":"])
+    ax3.hist(x, bins=10, histtype="barstacked", edgecolor=["blue", "black", "red"],
+                linewidth=[1, 1.2, 1.5], linestyle=["-", "--", ":"])
 
 
 def test_hist_barstacked_bottom_unchanged():
